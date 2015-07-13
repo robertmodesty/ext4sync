@@ -1,5 +1,24 @@
 #!/bin/bash
 
+######################################################################
+#                                                                    #
+#      Synchronizing for ext4 file system.                           #
+#       (This program copys the subsecond in file time.)             #
+#                                               by Robert. D Wei     #
+#                                                                    #
+######################################################################
+
+function newLnProtct () {
+    while read lineX ; do
+      lineX1="${lineX% --TailProtect-96H=UOW8WBQ--}"
+      if [ "$lineX1" == "$lineX" ] ; then
+        echo -n "$lineX"--NewLineProtect-96H=UOW8WBQ--
+      else
+        echo "$lineX1"
+      fi
+    done
+}
+
 function pkin2Dir() {
     lstDir=""
     while read lineX ; do
@@ -23,6 +42,10 @@ function pkin2Dir() {
     done
 } 
 
+if ! which sqlite3 > /dev/null ; then
+  echo This script require \'sqlite3\'!
+  exit 1
+fi
 
 if [ "$1" != "" ] && [ "$2" != "" ] && [ -d $1 ] && [ -d $2 ] ; then
   if [ "${1:0:1}" == "/" ] ; then
@@ -39,30 +62,39 @@ else
   echo Use: $0 SourceDirectory TargetDirectory
   exit 1
 fi
-tmpFil=$(mktemp)
+tmpFil=$(mktemp --suffix=.db)
 
+Find2SQLstr="INSERT INTO unknown VALUES(%D, %i, %n, #%m#, #%y#, #%T+#,"
+Find2SQLstr+=" %s, #%p --TailProtect-96H=UOW8WBQ--\n"
+
+Hash2quote="s/\([^#]*\)#\([^#]*\)#, #\([^#]*\)#, #\([^#]*\)#, "
+Hash2quote+="\([0-9]*\), #/\1'\2', '\3', '\4', \5, '/ ; s/$/');/"
+
+echo 1.  Scanning \'$fDir\' ...
 
 cd $fDir
 (echo "CREATE TABLE fdir(dev_num, inode, hlinks, permin, type, time,"\
  "size, file);"
  echo "BEGIN;"
- find -printf \
-  "INSERT INTO fdir VALUES(%D, %i, %n, #%m#, #%y#, #%T+#, %s, #%p\n" \
-  | tail -n +2 | sed "s/+/ /; s| \./| |; s/'/''\"''\"''/g" \
-  | sed "s/\(.* .* .* .* .* .* \)#\(.*\)#, #\(.*\)#, #\(.* .*\)#, \(.*\), #/\1'\2', '\3', '\4', \5, '/ ; s/$/');/" 
+ find -printf "${Find2SQLstr/unknown/fdir}" | tail -n +2 \
+  | sed "s/+/ /; s| \./| |; s/'/''\"''\"''/g" | newLnProtct \
+  | sed "$Hash2quote" 
  echo "COMMIT;") | sqlite3 $tmpFil
 cd - > /dev/null
+
+echo 2.  Scanning \'$tDir\' ...
 
 cd $tDir
 (echo "CREATE TABLE tdir(dev_num, inode, hlinks, permin, type, time,"\
  "size, file);"
  echo "BEGIN;"
- find -printf \
-  "INSERT INTO tdir VALUES(%D, %i, %n, #%m#, #%y#, #%T+#, %s, #%p\n" \
-  | tail -n +2 | sed "s/+/ /; s| \./| |; s/'/''\"''\"''/g" \
-  | sed "s/\(.* .* .* .* .* .* \)#\(.*\)#, #\(.*\)#, #\(.* .*\)#, \(.*\), #/\1'\2', '\3', '\4', \5, '/ ; s/$/');/" 
+ find -printf "${Find2SQLstr/unknown/tdir}" | tail -n +2 \
+  | sed "s/+/ /; s| \./| |; s/'/''\"''\"''/g" | newLnProtct \
+  | sed "$Hash2quote"
  echo "COMMIT;") | sqlite3 $tmpFil
 cd - > /dev/null
+
+echo 3.  Comparing two directorys...
 
 sqlite3 $tmpFil << EOF
 
@@ -77,13 +109,15 @@ CREATE TABLE chg AS SELECT fdir.*
 
 EOF
 
+echo 4.  Synchronizing to \'$tDir\'
+
 cd $tDir
 remvs=$(sqlite3 $tmpFil "SELECT type, file FROM remv ORDER BY file" | pkin2Dir | sed "s/^/'/ ; s/$/'/")
 if [ ${#remvs} != 0 ] ; then
-  eval rm -r $remvs
+  echo rm -r $remvs | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" | bash
 fi
-sqlite3 $tmpFil "SELECT type, file FROM new ORDER BY file" | pkin2Dir | sed "s|\(.*\)|cp -a '$fDir/\1' '\1'|" | bash
-sqlite3 $tmpFil "SELECT file FROM chg WHERE type = 'f' ORDER BY file" | sed "s|\(.*\)|cp -af '$fDir/\1' '\1'|" | bash
-sqlite3 $tmpFil "SELECT time, file FROM fDir WHERE type = 'd' ORDER BY file DESC" | sed "s/^\([^|]*\)|\(.*\)/touch -d '\1' '\2'/" | bash
+sqlite3 $tmpFil "SELECT type, file FROM new ORDER BY file" | pkin2Dir | sed "s|\(.*\)|cp -a '$fDir/\1' '\1'|" | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" | bash
+sqlite3 $tmpFil "SELECT file FROM chg WHERE type = 'f' ORDER BY file" | sed "s|\(.*\)|cp -af '$fDir/\1' '\1'| ; s/--NewLineProtect-96H=UOW8WBQ--/\n/g" | bash
+sqlite3 $tmpFil "SELECT time, file FROM fDir WHERE type = 'd' ORDER BY file DESC" | sed "s/^\([^|]*\)|\(.*\)/touch -d '\1' '\2'/ ; s/--NewLineProtect-96H=UOW8WBQ--/\n/g" | bash
 cd - > /dev/null
 rm $tmpFil
