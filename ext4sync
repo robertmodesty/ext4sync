@@ -1,0 +1,89 @@
+#!/bin/bash
+
+function pkin2Dir() {
+    lstDir=""
+    while read lineX ; do
+      if [ "$lstDir" == "" ] ; then
+        if [ "${lineX:0:1}" == "d" ] ; then
+          lstDir="${lineX:2}"
+        fi
+        echo "${lineX:2}"
+      else
+        nmeStr="${lineX:2}"
+        if [ "$lstDir" != "${nmeStr:0:${#lstDir}}" ] \
+             || [ "/" != "${nmeStr:${#lstDir}:1}" ] ; then
+          echo "$nmeStr"
+          if [ "${lineX:0:1}" == "d" ] ; then
+            lstDir="$nmeStr"
+          else
+            lstDir=""
+          fi
+        fi
+      fi
+    done
+} 
+
+
+if [ "$1" != "" ] && [ "$2" != "" ] && [ -d $1 ] && [ -d $2 ] ; then
+  if [ "${1:0:1}" == "/" ] ; then
+    fDir="$1"
+  else
+    fDir="$(pwd)/$1"
+  fi
+  if [ "${2:0:1}" == "/" ] ; then
+    tDir="$2"
+  else
+    tDir="$(pwd)/$2"
+  fi
+else
+  echo Use: $0 SourceDirectory TargetDirectory
+  exit 1
+fi
+tmpFil=$(mktemp)
+
+
+cd $fDir
+(echo "CREATE TABLE fdir(dev_num, inode, hlinks, permin, type, time,"\
+ "size, file);"
+ echo "BEGIN;"
+ find -printf \
+  "INSERT INTO fdir VALUES(%D, %i, %n, #%m#, #%y#, #%T+#, %s, #%p\n" \
+  | tail -n +2 | sed "s/+/ /; s| \./| |; s/'/''\"''\"''/g" \
+  | sed "s/\(.* .* .* .* .* .* \)#\(.*\)#, #\(.*\)#, #\(.* .*\)#, \(.*\), #/\1'\2', '\3', '\4', \5, '/ ; s/$/');/" 
+ echo "COMMIT;") | sqlite3 $tmpFil
+cd - > /dev/null
+
+cd $tDir
+(echo "CREATE TABLE tdir(dev_num, inode, hlinks, permin, type, time,"\
+ "size, file);"
+ echo "BEGIN;"
+ find -printf \
+  "INSERT INTO tdir VALUES(%D, %i, %n, #%m#, #%y#, #%T+#, %s, #%p\n" \
+  | tail -n +2 | sed "s/+/ /; s| \./| |; s/'/''\"''\"''/g" \
+  | sed "s/\(.* .* .* .* .* .* \)#\(.*\)#, #\(.*\)#, #\(.* .*\)#, \(.*\), #/\1'\2', '\3', '\4', \5, '/ ; s/$/');/" 
+ echo "COMMIT;") | sqlite3 $tmpFil
+cd - > /dev/null
+
+sqlite3 $tmpFil << EOF
+
+CREATE TABLE remv AS SELECT * FROM tdir
+    WHERE file NOT IN (SELECT file FROM fdir);
+CREATE TABLE new AS SELECT * FROM fdir
+    WHERE file NOT IN (SELECT file FROM tdir);
+CREATE TABLE chg AS SELECT fdir.* 
+    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
+    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size
+        AND fdir.type = tdir.type);
+
+EOF
+
+cd $tDir
+remvs=$(sqlite3 $tmpFil "SELECT type, file FROM remv ORDER BY file" | pkin2Dir | sed "s/^/'/ ; s/$/'/")
+if [ ${#remvs} != 0 ] ; then
+  eval rm -r $remvs
+fi
+sqlite3 $tmpFil "SELECT type, file FROM new ORDER BY file" | pkin2Dir | sed "s|\(.*\)|cp -a '$fDir/\1' '\1'|" | bash
+sqlite3 $tmpFil "SELECT file FROM chg WHERE type = 'f' ORDER BY file" | sed "s|\(.*\)|cp -af '$fDir/\1' '\1'|" | bash
+sqlite3 $tmpFil "SELECT time, file FROM fDir WHERE type = 'd' ORDER BY file DESC" | sed "s/^\([^|]*\)|\(.*\)/touch -d '\1' '\2'/" | bash
+cd - > /dev/null
+rm $tmpFil
