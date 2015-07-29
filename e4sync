@@ -75,12 +75,19 @@ function full_path() {
   fi
 }
 
-exit_if_no_sqlite3
 
-exit_if_wrong_directory_name "$@"
+function process_env_and_args() {
 
-BOARD_fDir="$( full_path "$1" )"
-BOARD_tDir="$( full_path "$2" )"
+  exit_if_no_sqlite3
+
+  exit_if_wrong_directory_name "$@"
+
+  BOARD_fDir="$( full_path "$1" )"
+  BOARD_tDir="$( full_path "$2" )"
+}
+
+
+process_env_and_args "$@"
 
 tmpFil=$(mktemp --suffix=.db)
 
