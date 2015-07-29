@@ -19,6 +19,7 @@ function newLnProtct () {
     done
 }
 
+
 function pkin2Dir() {
     lstDir=""
     while read lineX ; do
@@ -42,10 +43,17 @@ function pkin2Dir() {
     done
 } 
 
-if ! which sqlite3 > /dev/null ; then
-  echo This script require \'sqlite3\'!
-  exit 1
-fi
+
+function exit_if_no_sqlite3() {
+
+  if ! which sqlite3 > /dev/null ; then
+    echo This script require \'sqlite3\'!
+    exit 1
+  fi
+}
+
+
+exit_if_no_sqlite3
 
 if [ "$1" != "" ] && [ "$2" != "" ] && [ -d $1 ] && [ -d $2 ] ; then
   if [ "${1:0:1}" == "/" ] ; then
