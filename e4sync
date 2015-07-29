@@ -62,20 +62,22 @@ function exit_if_wrong_directory_name() {
   fi
 }
 
+
+function full_path() {
+
+  if [ "${1:0:1}" == "/" ] ; then
+    echo "$1"
+  else
+    echo "$PWD/$1"
+  fi
+}
+
 exit_if_no_sqlite3
 
 exit_if_wrong_directory_name "$@"
 
-if [ "${1:0:1}" == "/" ] ; then
-  fDir="$1"
-else
-  fDir="$(pwd)/$1"
-fi
-if [ "${2:0:1}" == "/" ] ; then
-  tDir="$2"
-else
-  tDir="$(pwd)/$2"
-fi
+fDir="$( full_path "$1" )"
+tDir="$( full_path "$2" )"
 
 tmpFil=$(mktemp --suffix=.db)
 
