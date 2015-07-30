@@ -16,7 +16,7 @@ function newLnProtct () {
     while read lineX ; do
       lineX1="${lineX% --TailProtect-96H=UOW8WBQ--}"
       if [ "$lineX1" == "$lineX" ] ; then
-        echo -n "$lineX"--NewLineProtect-96H=UOW8WBQ--
+        echo -n "${lineX}--NewLineProtect-96H=UOW8WBQ--"
       else
         echo "$lineX1"
       fi
@@ -25,27 +25,27 @@ function newLnProtct () {
 
 
 function pkin2Dir() {
-    lstDir=""
+    local lstDir=""
+    local lineX fileType nameWithPath
+
     while read lineX ; do
-      if [ "$lstDir" == "" ] ; then
-        if [ "${lineX:0:1}" == "d" ] ; then
-          lstDir="${lineX:2}"
+      fileType="${lineX:0:1}"
+      nameWithPath="${lineX:2}"
+      checkStr="${nameWithPath#$lstDir}"
+
+      if [ "$nameWithPath" == "$checkStr" ] ; then
+
+        echo "$nameWithPath"
+
+        if [ "$fileType" == "d" ] ; then
+          lstDir="$nameWithPath/"
+        else
+          lstDir=""
         fi
-        echo "${lineX:2}"
-      else
-        nmeStr="${lineX:2}"
-        if [ "$lstDir" != "${nmeStr:0:${#lstDir}}" ] \
-             || [ "/" != "${nmeStr:${#lstDir}:1}" ] ; then
-          echo "$nmeStr"
-          if [ "${lineX:0:1}" == "d" ] ; then
-            lstDir="$nmeStr"
-          else
-            lstDir=""
-          fi
-        fi
+
       fi
     done
-} 
+}
 
 
 function exit_if_no_sqlite3() {
