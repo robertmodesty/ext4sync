@@ -114,6 +114,25 @@ function scan_directory() {
   cd - > /dev/null
 }
 
+
+function compare_directorys() {
+
+  sqlite3 $BOARD_tmpFil << EOF
+
+  CREATE TABLE remv AS SELECT * FROM tdir
+      WHERE file NOT IN (SELECT file FROM fdir);
+
+  CREATE TABLE new AS SELECT * FROM fdir
+      WHERE file NOT IN (SELECT file FROM tdir);
+
+  CREATE TABLE chg AS SELECT fdir.* 
+      FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
+      WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size
+          AND fdir.type = tdir.type);
+
+EOF
+}
+
 process_env_and_args "$@"
 
 echo "1.  Scanning '$BOARD_fDir'..."
@@ -122,20 +141,8 @@ scan_directory fdir "$BOARD_fDir"
 echo "2.  Scanning '$BOARD_tDir'..."
 scan_directory tdir "$BOARD_tDir"
 
-echo 3.  Comparing two directorys...
-
-sqlite3 $BOARD_tmpFil << EOF
-
-CREATE TABLE remv AS SELECT * FROM tdir
-    WHERE file NOT IN (SELECT file FROM fdir);
-CREATE TABLE new AS SELECT * FROM fdir
-    WHERE file NOT IN (SELECT file FROM tdir);
-CREATE TABLE chg AS SELECT fdir.* 
-    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
-    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size
-        AND fdir.type = tdir.type);
-
-EOF
+echo "3.  Comparing two directorys..."
+compare_directorys
 
 echo 4.  Synchronizing to \'$BOARD_tDir\'
 
