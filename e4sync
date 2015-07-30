@@ -10,6 +10,7 @@
 
 BOARD_fDir=""
 BOARD_tDir=""
+BOARD_tmpFil=""
 
 function newLnProtct () {
     while read lineX ; do
@@ -84,12 +85,13 @@ function process_env_and_args() {
 
   BOARD_fDir="$( full_path "$1" )"
   BOARD_tDir="$( full_path "$2" )"
+
+  BOARD_tmpFil=$(mktemp --suffix=.db)
 }
 
 
 process_env_and_args "$@"
 
-tmpFil=$(mktemp --suffix=.db)
 
 Find2SQLstr="INSERT INTO unknown VALUES(%D, %i, %n, #%m#, #%y#, #%T+#,"
 Find2SQLstr+=" %s, #%p --TailProtect-96H=UOW8WBQ--\n"
@@ -106,7 +108,7 @@ cd $BOARD_fDir
  find -printf "${Find2SQLstr/unknown/fdir}" | tail -n +2 \
   | sed "s/+/ /; s| \./| |; s/'/''\"''\"''/g" | newLnProtct \
   | sed "$Hash2quote" 
- echo "COMMIT;") | sqlite3 $tmpFil
+ echo "COMMIT;") | sqlite3 $BOARD_tmpFil
 cd - > /dev/null
 
 echo 2.  Scanning \'$BOARD_tDir\' ...
@@ -118,12 +120,12 @@ cd $BOARD_tDir
  find -printf "${Find2SQLstr/unknown/tdir}" | tail -n +2 \
   | sed "s/+/ /; s| \./| |; s/'/''\"''\"''/g" | newLnProtct \
   | sed "$Hash2quote"
- echo "COMMIT;") | sqlite3 $tmpFil
+ echo "COMMIT;") | sqlite3 $BOARD_tmpFil
 cd - > /dev/null
 
 echo 3.  Comparing two directorys...
 
-sqlite3 $tmpFil << EOF
+sqlite3 $BOARD_tmpFil << EOF
 
 CREATE TABLE remv AS SELECT * FROM tdir
     WHERE file NOT IN (SELECT file FROM fdir);
@@ -139,12 +141,12 @@ EOF
 echo 4.  Synchronizing to \'$BOARD_tDir\'
 
 cd $BOARD_tDir
-remvs=$(sqlite3 $tmpFil "SELECT type, file FROM remv ORDER BY file" | pkin2Dir | sed "s/^/'/ ; s/$/'/")
+remvs=$(sqlite3 $BOARD_tmpFil "SELECT type, file FROM remv ORDER BY file" | pkin2Dir | sed "s/^/'/ ; s/$/'/")
 if [ ${#remvs} != 0 ] ; then
   echo rm -r $remvs | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" | bash
 fi
-sqlite3 $tmpFil "SELECT type, file FROM new ORDER BY file" | pkin2Dir | sed "s|\(.*\)|cp -a '$BOARD_fDir/\1' '\1'|" | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" | bash
-sqlite3 $tmpFil "SELECT file FROM chg WHERE type = 'f' ORDER BY file" | sed "s|\(.*\)|cp -af '$BOARD_fDir/\1' '\1'| ; s/--NewLineProtect-96H=UOW8WBQ--/\n/g" | bash
-sqlite3 $tmpFil "SELECT time, file FROM fdir WHERE type = 'd' ORDER BY file DESC" | sed "s/^\([^|]*\)|\(.*\)/touch -d '\1' '\2'/ ; s/--NewLineProtect-96H=UOW8WBQ--/\n/g" | bash
+sqlite3 $BOARD_tmpFil "SELECT type, file FROM new ORDER BY file" | pkin2Dir | sed "s|\(.*\)|cp -a '$BOARD_fDir/\1' '\1'|" | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" | bash
+sqlite3 $BOARD_tmpFil "SELECT file FROM chg WHERE type = 'f' ORDER BY file" | sed "s|\(.*\)|cp -af '$BOARD_fDir/\1' '\1'| ; s/--NewLineProtect-96H=UOW8WBQ--/\n/g" | bash
+sqlite3 $BOARD_tmpFil "SELECT time, file FROM fdir WHERE type = 'd' ORDER BY file DESC" | sed "s/^\([^|]*\)|\(.*\)/touch -d '\1' '\2'/ ; s/--NewLineProtect-96H=UOW8WBQ--/\n/g" | bash
 cd - > /dev/null
-rm $tmpFil
+rm $BOARD_tmpFil
