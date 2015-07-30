@@ -90,38 +90,37 @@ function process_env_and_args() {
 }
 
 
+function scan_directory() {
+  local tabl="$1"
+  local dirName="$2"
+  local Find2SQLstr Hash2quote
+
+  Find2SQLstr="INSERT INTO $tabl VALUES(%D, %i, %n, #%m#, #%y#, #%T+#,"
+  Find2SQLstr+=" %s, #%p --TailProtect-96H=UOW8WBQ--\n"
+
+  Hash2quote="s/\([^#]*\)#\([^#]*\)#, #\([^#]*\)#, #\([^#]*\)#, "
+  Hash2quote+="\([0-9]*\), #/\1'\2', '\3', '\4', \5, '/ ; s/$/');/"
+
+  cd $dirName
+  (echo "CREATE TABLE $tabl(dev_num, inode, hlinks, permin, type, time,"\
+   "size, file);"
+   echo "BEGIN;"
+   find -printf "$Find2SQLstr" \
+     | tail -n +2 \
+     | sed "s/+/ /; s| \./| |; s/'/''\"''\"''/g" \
+     | newLnProtct \
+     | sed "$Hash2quote" 
+   echo "COMMIT;") | sqlite3 $BOARD_tmpFil
+  cd - > /dev/null
+}
+
 process_env_and_args "$@"
 
+echo "1.  Scanning '$BOARD_fDir'..."
+scan_directory fdir "$BOARD_fDir"
 
-Find2SQLstr="INSERT INTO unknown VALUES(%D, %i, %n, #%m#, #%y#, #%T+#,"
-Find2SQLstr+=" %s, #%p --TailProtect-96H=UOW8WBQ--\n"
-
-Hash2quote="s/\([^#]*\)#\([^#]*\)#, #\([^#]*\)#, #\([^#]*\)#, "
-Hash2quote+="\([0-9]*\), #/\1'\2', '\3', '\4', \5, '/ ; s/$/');/"
-
-echo 1.  Scanning \'$BOARD_fDir\' ...
-
-cd $BOARD_fDir
-(echo "CREATE TABLE fdir(dev_num, inode, hlinks, permin, type, time,"\
- "size, file);"
- echo "BEGIN;"
- find -printf "${Find2SQLstr/unknown/fdir}" | tail -n +2 \
-  | sed "s/+/ /; s| \./| |; s/'/''\"''\"''/g" | newLnProtct \
-  | sed "$Hash2quote" 
- echo "COMMIT;") | sqlite3 $BOARD_tmpFil
-cd - > /dev/null
-
-echo 2.  Scanning \'$BOARD_tDir\' ...
-
-cd $BOARD_tDir
-(echo "CREATE TABLE tdir(dev_num, inode, hlinks, permin, type, time,"\
- "size, file);"
- echo "BEGIN;"
- find -printf "${Find2SQLstr/unknown/tdir}" | tail -n +2 \
-  | sed "s/+/ /; s| \./| |; s/'/''\"''\"''/g" | newLnProtct \
-  | sed "$Hash2quote"
- echo "COMMIT;") | sqlite3 $BOARD_tmpFil
-cd - > /dev/null
+echo "2.  Scanning '$BOARD_tDir'..."
+scan_directory tdir "$BOARD_tDir"
 
 echo 3.  Comparing two directorys...
 
