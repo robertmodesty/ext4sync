@@ -171,18 +171,24 @@ function synchronize(){
 }
 
 
-process_env_and_args "$@"
+function main() {
 
-echo "1.  Scanning '$BOARD_fDir'..."
-scan_directory fdir "$BOARD_fDir"
+  process_env_and_args "$@"
 
-echo "2.  Scanning '$BOARD_tDir'..."
-scan_directory tdir "$BOARD_tDir"
+  echo "1.  Scanning '$BOARD_fDir'..."
+  scan_directory fdir "$BOARD_fDir"
 
-echo "3.  Comparing two directorys..."
-compare_directorys
+  echo "2.  Scanning '$BOARD_tDir'..."
+  scan_directory tdir "$BOARD_tDir"
 
-echo "4.  Synchronizing to '$BOARD_tDir'"
-synchronize
+  echo "3.  Comparing two directorys..."
+  compare_directorys
 
-rm $BOARD_tmpFil
+  echo "4.  Synchronizing to '$BOARD_tDir'"
+  synchronize
+
+  rm $BOARD_tmpFil
+}
+
+
+main "$@"
