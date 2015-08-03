@@ -13,14 +13,16 @@ BOARD_tDir=""
 BOARD_tmpFil=""
 
 function newLnProtct () {
-    while read lineX ; do
-      lineX1="${lineX% --TailProtect-96H=UOW8WBQ--}"
-      if [ "$lineX1" == "$lineX" ] ; then
-        echo -n "${lineX}--NewLineProtect-96H=UOW8WBQ--"
-      else
-        echo "$lineX1"
-      fi
-    done
+  local lineX lineX1
+
+  while read lineX ; do
+    lineX1="${lineX% --TailProtect-96H=UOW8WBQ--}"
+    if [ "$lineX1" == "$lineX" ] ; then
+      echo -n "${lineX}--NewLineProtect-96H=UOW8WBQ--"
+    else
+      echo "$lineX1"
+    fi
+  done
 }
 
 
