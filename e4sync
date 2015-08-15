@@ -12,7 +12,7 @@ BOARD_fDir=""
 BOARD_tDir=""
 BOARD_tmpFil=""
 
-function newLnProtct () {
+function new_line_protect () {
   local lineX lineX1
 
   while read lineX ; do
@@ -26,27 +26,27 @@ function newLnProtct () {
 }
 
 
-function pkin2Dir() {
-    local lstDir=""
-    local lineX fileType nameWithPath
+function pack_into_one_directory() {
+  local lstDir=""
+  local lineX fileType nameWithPath
 
-    while read lineX ; do
-      fileType="${lineX:0:1}"
-      nameWithPath="${lineX:2}"
-      checkStr="${nameWithPath#$lstDir}"
+  while read lineX ; do
+    fileType="${lineX:0:1}"
+    nameWithPath="${lineX:2}"
+    checkStr="${nameWithPath#$lstDir}"
 
-      if [ "$nameWithPath" == "$checkStr" ] ; then
+    if [ "$nameWithPath" == "$checkStr" ] ; then
 
-        echo "$nameWithPath"
+      echo "$nameWithPath"
 
-        if [ "$fileType" == "d" ] ; then
-          lstDir="$nameWithPath/"
-        else
-          lstDir=""
-        fi
-
+      if [ "$fileType" == "d" ] ; then
+        lstDir="$nameWithPath/"
+      else
+        lstDir=""
       fi
-    done
+
+    fi
+  done
 }
 
 
@@ -110,8 +110,8 @@ function scan_directory() {
    find -printf "$Find2SQLstr" \
      | tail -n +2 \
      | sed "s/+/ /; s| \./| |; s/'/''\"''\"''/g" \
-     | newLnProtct \
-     | sed "$Hash2quote" 
+     | new_line_protect \
+     | sed "$Hash2quote"
    echo "COMMIT;") | sqlite3 $BOARD_tmpFil
   cd - > /dev/null
 }
@@ -127,7 +127,7 @@ function compare_directorys() {
   CREATE TABLE new AS SELECT * FROM fdir
       WHERE file NOT IN (SELECT file FROM tdir);
 
-  CREATE TABLE chg AS SELECT fdir.* 
+  CREATE TABLE chg AS SELECT fdir.*
       FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
       WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size
           AND fdir.type = tdir.type);
@@ -142,7 +142,7 @@ function synchronize(){
   cd $BOARD_tDir
 
   remvs=$( sqlite3 $BOARD_tmpFil "SELECT type, file FROM remv ORDER BY file" \
-           | pkin2Dir \
+           | pack_into_one_directory \
            | sed "s/^/'/ ; s/$/'/" )
   if [ ${#remvs} != 0 ] ; then
     echo rm -r $remvs \
@@ -151,7 +151,7 @@ function synchronize(){
   fi
 
   sqlite3 $BOARD_tmpFil "SELECT type, file FROM new ORDER BY file" \
-    | pkin2Dir \
+    | pack_into_one_directory \
     | sed "s|\(.*\)|cp -a '$BOARD_fDir/\1' '\1'|" \
     | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     | bash
