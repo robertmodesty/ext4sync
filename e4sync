@@ -104,8 +104,8 @@ function scan_directory() {
   Hash2quote+="\([0-9]*\), #/\1'\2', '\3', '\4', \5, '/ ; s/$/');/"
 
   cd $dirName
-  (echo "CREATE TABLE $tabl(dev_num, inode, hlinks, permin, type, time,"\
-   "size, file);"
+  (echo "CREATE TABLE $tabl(dev_num, inode, hlinks, permin, type," \
+   "time, size, file);"
    echo "BEGIN;"
    find -printf "$Find2SQLstr" \
      | tail -n +2 \
@@ -141,7 +141,8 @@ function synchronize(){
 
   cd $BOARD_tDir
 
-  remvs=$( sqlite3 $BOARD_tmpFil "SELECT type, file FROM remv ORDER BY file" \
+  remvs=$( sqlite3 $BOARD_tmpFil "SELECT type, file FROM remv
+                                   ORDER BY file;" \
            | pack_into_one_directory \
            | sed "s/^/'/ ; s/$/'/" )
   if [ ${#remvs} != 0 ] ; then
@@ -150,13 +151,16 @@ function synchronize(){
       | bash
   fi
 
-  sqlite3 $BOARD_tmpFil "SELECT type, file FROM new ORDER BY file" \
+  sqlite3 $BOARD_tmpFil "SELECT type, file FROM new
+                          ORDER BY file;" \
     | pack_into_one_directory \
     | sed "s|\(.*\)|cp -a '$BOARD_fDir/\1' '\1'|" \
     | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     | bash
 
-  sqlite3 $BOARD_tmpFil "SELECT file FROM chg WHERE type = 'f' ORDER BY file" \
+  sqlite3 $BOARD_tmpFil "SELECT file FROM chg
+                          WHERE type = 'f'
+                          ORDER BY file;" \
     | sed "s|\(.*\)|cp -af '$BOARD_fDir/\1' '\1'| ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     | bash
@@ -164,7 +168,7 @@ function synchronize(){
   sqlite3 $BOARD_tmpFil "SELECT time, file FROM fdir
                           WHERE type = 'd'
                           ORDER BY file
-                          DESC" \
+                          DESC;" \
     | sed "s/^\([^|]*\)|\(.*\)/touch -d '\1' '\2'/ ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     | bash
