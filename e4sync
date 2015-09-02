@@ -109,7 +109,7 @@ function scan_directory() {
    echo "BEGIN;"
    find -printf "$Find2SQLstr" \
      | tail -n +2 \
-     | sed "s/+/ /; s| \./| |; s/'/''\"''\"''/g" \
+     | sed "s/+/ /; s| \./| |; s/'/''/g" \
      | new_line_protect \
      | sed "$Hash2quote"
    echo "COMMIT;") | sqlite3 $BOARD_tmpFil
@@ -144,7 +144,9 @@ function synchronize(){
   remvs=$( sqlite3 $BOARD_tmpFil "SELECT type, file FROM remv
                                    ORDER BY file;" \
            | pack_into_one_directory \
-           | sed "s/^/'/ ; s/$/'/" )
+           | sed "s/'/'\\\\''/g ;
+                  s/^/'/ ;
+                  s/$/'/" )
   if [ ${#remvs} != 0 ] ; then
     echo rm -r $remvs \
       | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
@@ -154,14 +156,16 @@ function synchronize(){
   sqlite3 $BOARD_tmpFil "SELECT type, file FROM new
                           ORDER BY file;" \
     | pack_into_one_directory \
-    | sed "s|\(.*\)|cp -a '$BOARD_fDir/\1' '\1'|" \
-    | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+    | sed "s/'/'\\\\''/g ;
+           s|\(.*\)|cp -a '$BOARD_fDir/\1' '\1'| ;
+           s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     | bash
 
   sqlite3 $BOARD_tmpFil "SELECT file FROM chg
                           WHERE type = 'f'
                           ORDER BY file;" \
-    | sed "s|\(.*\)|cp -af '$BOARD_fDir/\1' '\1'| ;
+    | sed "s/'/'\\\\''/g ;
+           s|\(.*\)|cp -af '$BOARD_fDir/\1' '\1'| ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     | bash
 
@@ -169,7 +173,8 @@ function synchronize(){
                           WHERE type = 'd'
                           ORDER BY file
                           DESC;" \
-    | sed "s/^\([^|]*\)|\(.*\)/touch -d '\1' '\2'/ ;
+    | sed "s/'/'\\\\''/g ;
+           s/^\([^|]*\)|\(.*\)/touch -d '\1' '\2'/ ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     | bash
 
