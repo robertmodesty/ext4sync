@@ -100,16 +100,17 @@ function scan_directory() {
   Find2SQLstr="INSERT INTO $tabl VALUES(%D, %i, %n, #%m#, #%y#, #%T+#,"
   Find2SQLstr+=" %s, #%p --TailProtect-96H=UOW8WBQ--\n"
 
-  Hash2quote="s/\([^#]*\)#\([^#]*\)#, #\([^#]*\)#, #\([^#]*\)#, "
-  Hash2quote+="\([0-9]*\), #/\1'\2', '\3', '\4', \5, '/ ; s/$/');/"
+  Hash2quote='s|^\([^#]*\)#\([^#]*\)#, #\([^#]*\)#, #\([^#.]*\.\)'
+  Hash2quote+='\([0-9]*\)#, \([0-9]*\), #\(.*\)/\([^/]*\)$|'
+  Hash2quote+="\1'\2', '\3', '\4\5', '\5', \6, '\7/\8', '\8');|"
 
   cd $dirName
   (echo "CREATE TABLE $tabl(dev_num, inode, hlinks, permin, type," \
-   "time, size, file);"
+   "time, subsecond, size, file, filename);"
    echo "BEGIN;"
    find -printf "$Find2SQLstr" \
      | tail -n +2 \
-     | sed "s/+/ /; s| \./| |; s/'/''/g" \
+     | sed "s/+/ /; s/'/''/g" \
      | new_line_protect \
      | sed "$Hash2quote"
    echo "COMMIT;") | sqlite3 $BOARD_tmpFil
