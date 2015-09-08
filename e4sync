@@ -120,35 +120,35 @@ function scan_directory() {
 
 function compare_directorys() {
 
-  sqlite3 $BOARD_tmpFil << EOF
+  sqlite3 $BOARD_tmpFil <<- EOF
 
-  CREATE TABLE remv AS SELECT * FROM tdir
-      WHERE file NOT IN (SELECT file FROM fdir);
+	CREATE TABLE remv AS SELECT * FROM tdir
+	    WHERE file NOT IN (SELECT file FROM fdir);
 
-  CREATE TABLE new AS SELECT * FROM fdir
-      WHERE file NOT IN (SELECT file FROM tdir);
+	CREATE TABLE new AS SELECT * FROM fdir
+	    WHERE file NOT IN (SELECT file FROM tdir);
 
-  CREATE TABLE chg AS SELECT fdir.*
-      FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
-      WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size
-          AND fdir.type = tdir.type);
+	CREATE TABLE chg AS SELECT fdir.*
+	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
+	    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size
+	        AND fdir.type = tdir.type);
 
-  CREATE TEMP TABLE all_old AS SELECT * FROM remv;
-  INSERT INTO all_old SELECT * FROM tdir
-      WHERE file IN (SELECT file FROM chg);
+	CREATE TEMP TABLE all_old AS SELECT * FROM remv;
+	INSERT INTO all_old SELECT * FROM tdir
+	  WHERE file IN (SELECT file FROM chg);
 
-  CREATE TEMP TABLE all_new AS SELECT * FROM new;
-  INSERT INTO all_old SELECT * FROM chg;
+	CREATE TEMP TABLE all_new AS SELECT * FROM new;
+	INSERT INTO all_old SELECT * FROM chg;
 
-  CREATE TABLE move_files
-          AS SELECT all_old.file AS from_loc, all_new.file AS to_loc
-      FROM all_old INNER JOIN all_new
-      WHERE all_old.filename = all_new.filename
-        AND all_old.time = all_new.time
-        AND all_old.size = all_new.size
-        AND all_old.type = all_new.type
-        AND all_old.subsecond != '0000000000';
-EOF
+	CREATE TABLE move_files
+	        AS SELECT all_old.file AS from_loc, all_new.file AS to_loc
+	    FROM all_old INNER JOIN all_new
+	    WHERE all_old.filename = all_new.filename
+	      AND all_old.time = all_new.time
+	      AND all_old.size = all_new.size
+	      AND all_old.type = all_new.type
+	      AND all_old.subsecond != '0000000000';
+	EOF
 }
 
 
