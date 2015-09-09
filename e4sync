@@ -147,7 +147,8 @@ function compare_directorys() {
 	      AND all_old.time = all_new.time
 	      AND all_old.size = all_new.size
 	      AND all_old.type = all_new.type
-	      AND all_old.subsecond != '0000000000';
+	      AND all_old.subsecond != '0000000000'
+	      AND all_old.type = "f";
 	EOF
 }
 
