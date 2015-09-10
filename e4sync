@@ -118,6 +118,21 @@ function scan_directory() {
 }
 
 
+function all_files_and_all_directorys_above_them() {
+  local nameWithPath directory
+
+  while read nameWithPath ; do
+    echo "$nameWithPath"
+    directory="${nameWithPath%/*}"
+    while [ "$directory" != '.' ] ; do
+      echo "$directory"
+      directory="${directory%/*}"
+    done
+  done \
+    | sort \
+    | uniq
+}
+
 function compare_directorys() {
 
   sqlite3 $BOARD_tmpFil <<- EOF
