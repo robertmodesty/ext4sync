@@ -134,6 +134,7 @@ function all_files_and_all_directorys_above_them() {
 }
 
 function compare_directorys() {
+  local sqlCmd filesMovedTo
 
   sqlite3 $BOARD_tmpFil <<- EOF
 
@@ -165,6 +166,35 @@ function compare_directorys() {
 	      AND all_old.subsecond != '0000000000'
 	      AND all_old.type = "f";
 	EOF
+
+  sqlCmd="$(
+    echo "begin;"
+    sqlite3 $BOARD_tmpFil "SELECT from_loc FROM move_files;" \
+      | all_files_and_all_directorys_above_them \
+      | sed "s/^/DELETE FROM remv WHERE file = '/ ; s/$/';/"
+    echo "commit;"
+  )"
+  echo "$sqlCmd" | sqlite3 $BOARD_tmpFil
+  unset sqlCmd
+
+  filesMovedTo="$(sqlite3 $BOARD_tmpFil "SELECT to_loc FROM move_files;")"
+
+  ( echo "begin;"
+    echo "$filesMovedTo" \
+      | all_files_and_all_directorys_above_them \
+      | sed "s/^/DELETE FROM new WHERE file = '/ ; s/$/';/"
+    echo "commit;"
+  ) | sqlite3 $BOARD_tmpFil
+
+  ( echo "begin;"
+    echo "$filesMovedTo" \
+      | sed "s/^/DELETE FROM chg WHERE file = '/ ; s/$/';/"
+    echo "commit;"
+  ) | sqlite3 $BOARD_tmpFil
+
+  sqlite3 $BOARD_tmpFil \
+    " update move_files
+         set from_loc = from_loc || ' --TailProtect-96H=UOW8WBQ--'; "
 }
 
 
@@ -184,6 +214,12 @@ function synchronize(){
       | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
       | bash
   fi
+
+  sqlite3 $BOARD_tmpFil "SELECT * FROM move_files;" \
+    | sed "s/'/'\\\\''/g ;
+           s/^/mv '/ ; s/ --TailProtect-96H=UOW8WBQ--|/' '/ ; s/$/'/ ;
+           s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+    | bash
 
   sqlite3 $BOARD_tmpFil "SELECT type, file FROM new
                           ORDER BY file;" \
