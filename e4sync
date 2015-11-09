@@ -88,7 +88,7 @@ function process_env_and_args() {
 
   BOARD_fDir="$( full_path "$1" )"
   BOARD_tDir="$( full_path "$2" )"
-  if [ "$3" == "-s" -o "$3" == "--skip-moving-files"] ; then
+  if [ "$3" == "-s" -o "$3" == "--skip-moving-files" ] ; then
     BOARD_moveFile="off"
   fi
 
