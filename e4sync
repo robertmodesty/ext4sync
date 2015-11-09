@@ -126,12 +126,16 @@ function all_files_and_all_directorys_above_them() {
   local nameWithPath directory
 
   while read nameWithPath ; do
+
     echo "$nameWithPath"
     directory="${nameWithPath%/*}"
+    test "$nameWithPath" == "$directory" && continue
+
     while [ "$directory" != '.' ] ; do
       echo "$directory"
       directory="${directory%/*}"
     done
+
   done \
     | sort \
     | uniq
@@ -184,22 +188,26 @@ function compare_directorys() {
 
     filesMovedTo="$(sqlite3 $BOARD_tmpFil "SELECT to_loc FROM move_files;")"
 
-    ( echo "begin;"
-      echo "$filesMovedTo" \
-        | all_files_and_all_directorys_above_them \
-        | sed "s/^/DELETE FROM new WHERE file = '/ ; s/$/';/"
-      echo "commit;"
-    ) | sqlite3 $BOARD_tmpFil
+    if [ -n "$filesMovedTo" ] ; then
+      ( echo "begin;"
+        echo "$filesMovedTo" \
+          | all_files_and_all_directorys_above_them \
+          | sed "s/^/DELETE FROM new WHERE file = '/ ; s/$/';/"
+        echo "commit;"
+      ) | sqlite3 $BOARD_tmpFil
 
-    ( echo "begin;"
-      echo "$filesMovedTo" \
-        | sed "s/^/DELETE FROM chg WHERE file = '/ ; s/$/';/"
-      echo "commit;"
-    ) | sqlite3 $BOARD_tmpFil
+      ( echo "begin;"
+        echo "$filesMovedTo" \
+          | sed "s/^/DELETE FROM chg WHERE file = '/ ; s/$/';/"
+        echo "commit;"
+      ) | sqlite3 $BOARD_tmpFil
 
-    sqlite3 $BOARD_tmpFil \
-      " update move_files
-           set from_loc = from_loc || ' --TailProtect-96H=UOW8WBQ--'; "
+      sqlite3 $BOARD_tmpFil \
+        " update move_files
+             set from_loc = from_loc || ' --TailProtect-96H=UOW8WBQ--'; "
+    else
+      BOARD_moveFile="off"
+    fi
   fi
 }
 
