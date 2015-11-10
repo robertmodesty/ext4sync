@@ -10,4 +10,4 @@
 
 SYNOPSIS
 
-        e4sync ORIGIN_DIRECTORY TARGET_DIRECTORY
+        e4sync ORIGIN_DIRECTORY TARGET_DIRECTORY [-s|--skip-moving-files]
