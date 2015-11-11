@@ -230,6 +230,14 @@ function synchronize(){
   fi
 
   if [ "on" == "$BOARD_moveFile" ] ; then
+      eval mkdir -p $(
+       sqlite3 $BOARD_tmpFil "SELECT to_loc FROM move_files;" \
+       | sed "s/'/'\\\\''/g ;
+              s|/[^/]*$|| ;
+              s/^/ '/ ; s/$/'/ ;
+              s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+      )
+
       sqlite3 $BOARD_tmpFil "SELECT * FROM move_files;" \
       | sed "s/'/'\\\\''/g ;
              s/^/mv '/ ; s/ --TailProtect-96H=UOW8WBQ--|/' '/ ; s/$/'/ ;
