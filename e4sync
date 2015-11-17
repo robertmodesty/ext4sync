@@ -62,9 +62,14 @@ function exit_if_no_sqlite3() {
 
 function exit_if_wrong_directory_name() {
 
-  if [ "$1" == "" ] || [ "$2" == "" ] \
-       || [ ! -d $1 ] || [ ! -d $2 ] ; then
+  if [ "$1" == "" ] || [ "$2" == "" ] ; then
     echo Use: $0 SOURCE_DIRECTORY TARGET_DIRECTORY
+    exit 1
+  elif [ ! -d "$1" ] ; then
+    echo "Error:  '$1' is not a valid directory!"
+    exit 1
+  elif [ ! -d "$2" ] ; then
+    echo "Error:  '$2' is not a valid directory!"
     exit 1
   fi
 }
