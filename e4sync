@@ -229,9 +229,9 @@ function synchronize(){
                   s/^/'/ ;
                   s/$/'/" )
   if [ ${#remvs} != 0 ] ; then
-    echo rm -r $remvs \
+    echo rm -r $remvs '|| exit $?' \
       | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
-      | bash
+      | bash || exit $?
   fi
 
   if [ "on" == "$BOARD_moveFile" ] ; then
@@ -241,13 +241,15 @@ function synchronize(){
               s|/[^/]*$|| ;
               s/^/ '/ ; s/$/'/ ;
               s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
-      )
+      ) || exit $?
 
       sqlite3 $BOARD_tmpFil "SELECT * FROM move_files;" \
       | sed "s/'/'\\\\''/g ;
-             s/^/mv '/ ; s/ --TailProtect-96H=UOW8WBQ--|/' '/ ; s/$/'/ ;
+             s/^/mv '/ ;
+             s/ --TailProtect-96H=UOW8WBQ--|/' '/ ;
+             s/$/' || exit \$?/ ;
              s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
-      | bash
+      | bash || exit $?
   fi
 
   sqlite3 $BOARD_tmpFil "SELECT type, file FROM new
@@ -255,16 +257,18 @@ function synchronize(){
     | pack_into_one_directory \
     | sed "s/'/'\\\\''/g ;
            s|\(.*\)|cp -a '$BOARD_fDir/\1' '\1'| ;
+           s/$/ || exit \$?/ ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
-    | bash
+    | bash || exit $?
 
   sqlite3 $BOARD_tmpFil "SELECT file FROM chg
                           WHERE type = 'f'
                           ORDER BY file;" \
     | sed "s/'/'\\\\''/g ;
            s|\(.*\)|cp -af '$BOARD_fDir/\1' '\1'| ;
+           s/$/ || exit \$?/ ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
-    | bash
+    | bash || exit $?
 
   sqlite3 $BOARD_tmpFil "SELECT time, file FROM fdir
                           WHERE type = 'd'
@@ -272,8 +276,9 @@ function synchronize(){
                           DESC;" \
     | sed "s/'/'\\\\''/g ;
            s/^\([^|]*\)|\(.*\)/touch -d '\1' '\2'/ ;
+           s/$/ || exit \$?/ ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
-    | bash
+    | bash || exit $?
 
     cd - > /dev/null
 }
