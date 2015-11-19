@@ -60,18 +60,42 @@ function exit_if_no_sqlite3() {
 }
 
 
-function exit_if_wrong_directory_name() {
+function get_both_directory_names() {
+  local fDir tDir
 
-  if [ "$1" == "" ] || [ "$2" == "" ] ; then
+  while [ -n "$1" ] ; do
+    if [ "-" != "${1:0:1}" ] ; then
+      if [ -n "$fDir" ] ; then
+        tDir="$1"
+        break
+      else
+        fDir="$1"
+      fi
+    elif [ "-" == "$1" ] ; then
+      if [ -n "$fDir" ] ; then
+        tDir="$2"
+        break
+      else
+        fDir="$2"
+      fi
+      shift
+    fi
+    shift
+  done
+
+  if [ "$fDir" == "" ] || [ "$tDir" == "" ] ; then
     echo Use: $0 SOURCE_DIRECTORY TARGET_DIRECTORY
     exit 1
-  elif [ ! -d "$1" ] ; then
-    echo "Error:  '$1' is not a valid directory!"
+  elif [ ! -d "$fDir" ] ; then
+    echo "Error:  '$fDir' is not a valid directory!"
     exit 1
-  elif [ ! -d "$2" ] ; then
-    echo "Error:  '$2' is not a valid directory!"
+  elif [ ! -d "$tDir" ] ; then
+    echo "Error:  '$tDir' is not a valid directory!"
     exit 1
   fi
+
+  BOARD_fDir="$( full_path "$fDir" )"
+  BOARD_tDir="$( full_path "$tDir" )"
 }
 
 
@@ -89,10 +113,8 @@ function process_env_and_args() {
 
   exit_if_no_sqlite3
 
-  exit_if_wrong_directory_name "$@"
+  get_both_directory_names "$@"
 
-  BOARD_fDir="$( full_path "$1" )"
-  BOARD_tDir="$( full_path "$2" )"
   if [ "$3" == "-s" -o "$3" == "--skip-moving-files" ] ; then
     BOARD_moveFile="off"
   fi
