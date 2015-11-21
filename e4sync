@@ -12,6 +12,7 @@ BOARD_fDir=""
 BOARD_tDir=""
 BOARD_tmpFil=""
 BOARD_moveFile="on"
+BOARD_verbose=""
 
 function new_line_protect () {
   local lineX lineX1
@@ -115,9 +116,16 @@ function process_env_and_args() {
 
   get_both_directory_names "$@"
 
-  if [ "$3" == "-s" -o "$3" == "--skip-moving-files" ] ; then
-    BOARD_moveFile="off"
-  fi
+  while [ -n "$1" ] ; do
+    case "$1" in
+      "-s"|"--skip-moving-files")
+        BOARD_moveFile="off"
+        ;;
+      "-v"|"--verbose")
+        BOARD_verbose="-v"
+        ;;
+    esac
+    fi
 
   BOARD_tmpFil=$(mktemp --suffix=.db)
 }
@@ -251,13 +259,13 @@ function synchronize(){
                   s/^/'/ ;
                   s/$/'/" )
   if [ ${#remvs} != 0 ] ; then
-    echo rm -r $remvs '|| exit $?' \
+    echo rm -r $BOARD_verbose $remvs '|| exit $?' \
       | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
       | bash || exit $?
   fi
 
   if [ "on" == "$BOARD_moveFile" ] ; then
-      eval mkdir -p $(
+      eval mkdir -p $BOARD_verbose $(
        sqlite3 $BOARD_tmpFil "SELECT to_loc FROM move_files;" \
        | sed "s/'/'\\\\''/g ;
               s|/[^/]*$|| ;
@@ -267,7 +275,7 @@ function synchronize(){
 
       sqlite3 $BOARD_tmpFil "SELECT * FROM move_files;" \
       | sed "s/'/'\\\\''/g ;
-             s/^/mv '/ ;
+             s/^/mv $BOARD_verbose '/ ;
              s/ --TailProtect-96H=UOW8WBQ--|/' '/ ;
              s/$/' || exit \$?/ ;
              s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
@@ -278,7 +286,7 @@ function synchronize(){
                           ORDER BY file;" \
     | pack_into_one_directory \
     | sed "s/'/'\\\\''/g ;
-           s|\(.*\)|cp -a '$BOARD_fDir/\1' '\1'| ;
+           s|\(.*\)|cp -a $BOARD_verbose '$BOARD_fDir/\1' '\1'| ;
            s/$/ || exit \$?/ ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     | bash || exit $?
@@ -287,7 +295,7 @@ function synchronize(){
                           WHERE type = 'f'
                           ORDER BY file;" \
     | sed "s/'/'\\\\''/g ;
-           s|\(.*\)|cp -af '$BOARD_fDir/\1' '\1'| ;
+           s|\(.*\)|cp -af $BOARD_verbose '$BOARD_fDir/\1' '\1'| ;
            s/$/ || exit \$?/ ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     | bash || exit $?
