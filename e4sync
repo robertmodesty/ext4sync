@@ -125,7 +125,8 @@ function process_env_and_args() {
         BOARD_verbose="-v"
         ;;
     esac
-    fi
+    shift
+  done
 
   BOARD_tmpFil=$(mktemp --suffix=.db)
 }
