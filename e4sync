@@ -14,6 +14,10 @@ BOARD_tmpFil=""
 BOARD_moveFile="on"
 BOARD_verbose=""
 
+
+
+
+
 function new_line_protect () {
   local lineX lineX1
 
@@ -26,7 +30,6 @@ function new_line_protect () {
     fi
   done
 }
-
 
 function pack_into_one_directory() {
   local lstDir=""
@@ -50,6 +53,37 @@ function pack_into_one_directory() {
     fi
   done
 }
+
+function full_path() {
+
+  if [ "${1:0:1}" == "/" ] ; then
+    echo "$1"
+  else
+    echo "$PWD/$1"
+  fi
+}
+
+function all_hierarchy_of_the_files() {
+  local nameWithPath directory
+
+  while read nameWithPath ; do
+
+    echo "$nameWithPath"
+    directory="${nameWithPath%/*}"
+    test "$nameWithPath" == "$directory" && continue
+
+    while [ "$directory" != '.' ] ; do
+      echo "$directory"
+      directory="${directory%/*}"
+    done
+
+  done \
+    | sort \
+    | uniq
+}
+
+
+
 
 
 function exit_if_no_sqlite3() {
@@ -99,14 +133,7 @@ function get_both_directory_names() {
 }
 
 
-function full_path() {
 
-  if [ "${1:0:1}" == "/" ] ; then
-    echo "$1"
-  else
-    echo "$PWD/$1"
-  fi
-}
 
 
 function process_env_and_args() {
@@ -157,25 +184,6 @@ function scan_directory() {
   cd - > /dev/null
 }
 
-
-function all_hierarchy_of_the_files() {
-  local nameWithPath directory
-
-  while read nameWithPath ; do
-
-    echo "$nameWithPath"
-    directory="${nameWithPath%/*}"
-    test "$nameWithPath" == "$directory" && continue
-
-    while [ "$directory" != '.' ] ; do
-      echo "$directory"
-      directory="${directory%/*}"
-    done
-
-  done \
-    | sort \
-    | uniq
-}
 
 function compare_directorys() {
   local sqlCmd filesMovedTo
@@ -315,6 +323,11 @@ function synchronize(){
 }
 
 
+
+
+
+
+
 function main() {
 
   process_env_and_args "$@"
@@ -333,6 +346,12 @@ function main() {
 
   rm $BOARD_tmpFil
 }
+
+
+
+
+
+
 
 
 main "$@"
