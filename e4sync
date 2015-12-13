@@ -18,6 +18,11 @@ BOARD_verbose=""
 
 
 
+####################
+# General Functions
+########################################################################
+
+
 function new_line_protect () {
   local lineX lineX1
 
@@ -85,6 +90,10 @@ function all_hierarchy_of_the_files() {
 
 
 
+####################
+# Middle Functions
+########################################################################
+
 
 function exit_if_no_sqlite3() {
 
@@ -134,6 +143,11 @@ function get_both_directory_names() {
 
 
 
+
+
+####################
+# functions of all steps
+########################################################################
 
 
 function process_env_and_args() {
@@ -328,6 +342,10 @@ function synchronize(){
 
 
 
+####################
+#  Main Function
+########################################################################
+
 function main() {
 
   process_env_and_args "$@"
@@ -353,5 +371,6 @@ function main() {
 
 
 
+##### Start this program ######
 
 main "$@"
