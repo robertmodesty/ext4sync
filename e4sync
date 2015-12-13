@@ -8,6 +8,12 @@
 #                                                                    #
 ######################################################################
 
+
+###### Settings ######
+
+#   setup in function process_env_and_args():
+#       readonly is_Root
+
 BOARD_fDir=""
 BOARD_tDir=""
 BOARD_tmpFil=""
@@ -23,7 +29,7 @@ BOARD_verbose=""
 ########################################################################
 
 
-function new_line_protect () {
+function new_line_protect() {
   local lineX lineX1
 
   while read lineX ; do
@@ -141,6 +147,14 @@ function get_both_directory_names() {
   return $count
 }
 
+function test_if_it_is_root() {
+
+  if [ "$(id -u)" == "0" ]; then
+    echo true
+  else
+    echo false
+  fi
+}
 
 
 
@@ -170,6 +184,8 @@ function process_env_and_args() {
   done
 
   BOARD_tmpFil=$(mktemp --suffix=.db)
+
+  readonly is_Root=$(test_if_it_is_root)
 }
 
 
