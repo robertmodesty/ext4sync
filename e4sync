@@ -196,7 +196,7 @@ function scan_directory() {
   local dirName="$2"
   local Find2SQLstr Hash2quote
 
-  Find2SQLstr="INSERT INTO $tabl VALUES(%D, %i, %n, #%m#, #%y#, #%T+#,"
+  Find2SQLstr="INSERT INTO $tabl VALUES(%D, %i, %n, %U, %G, #%m#, #%y#, #%T+#,"
   Find2SQLstr+=" %s, #%p --TailProtect-96H=UOW8WBQ--\n"
 
   Hash2quote='s|^\([^#]*\)#\([^#]*\)#, #\([^#]*\)#, #\([^#.]*\.\)'
@@ -204,7 +204,7 @@ function scan_directory() {
   Hash2quote+="\1'\2', '\3', '\4\5', '\5', \6, '\7/\8', '\8');|"
 
   cd $dirName
-  (echo "CREATE TABLE $tabl(dev_num, inode, hlinks, permin, type," \
+  (echo "CREATE TABLE $tabl(dev_num, inode, hlinks, uID, gID, permin, type," \
    "time, subsecond, size, file, filename);"
    echo "BEGIN;"
    find -printf "$Find2SQLstr" \
