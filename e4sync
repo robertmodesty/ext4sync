@@ -17,6 +17,8 @@ BOARD_fDir=""
 BOARD_tDir=""
 BOARD_tmpFil=""
 BOARD_moveFile="on"
+BOARD_rmOld=""
+BOARD_cpNew=""
 BOARD_verbose=""
 
 #   setup in function process_env_and_args():
@@ -218,7 +220,7 @@ function scan_directory() {
 
 
 function compare_directorys() {
-  local sqlCmd filesMovedTo
+  local sqlCmd filesMovedTo checkStr
 
   sqlite3 $BOARD_tmpFil <<- EOF
 
@@ -285,6 +287,12 @@ function compare_directorys() {
       BOARD_moveFile="off"
     fi
   fi
+
+  checkStr="$(sqlite3 $BOARD_tmpFil 'SELECT * FROM remv LIMIT 1;')"
+  test -z "$checkStr" && BOARD_rmOld="off" || BOARD_rmOld="on"
+
+  checkStr="$(sqlite3 $BOARD_tmpFil 'SELECT * FROM new LIMIT 1;')"
+  test -z "$checkStr" && BOARD_cpNew="off" || BOARD_cpNew="on"
 }
 
 
