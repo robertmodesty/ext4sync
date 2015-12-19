@@ -257,7 +257,6 @@ function compare_directorys() {
     sqlCmd="$(
       echo "begin;"
       sqlite3 $BOARD_tmpFil "SELECT from_loc FROM move_files;" \
-        | all_hierarchy_of_the_files \
         | sed "s/^/DELETE FROM remv WHERE file = '/ ; s/$/';/"
       echo "commit;"
     )"
