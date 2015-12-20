@@ -254,6 +254,11 @@ function compare_directorys() {
 	EOF
 
   if [ "on" == "$BOARD_moveFile" ] ; then
+    checkStr="$(sqlite3 $BOARD_tmpFil 'SELECT * FROM move_files LIMIT 1;')"
+    test -z "$checkStr" && BOARD_moveFile="off"
+  fi
+
+  if [ "on" == "$BOARD_moveFile" ] ; then
     sqlCmd="$(
       echo "begin;"
       sqlite3 $BOARD_tmpFil "SELECT from_loc FROM move_files;" \
@@ -265,26 +270,22 @@ function compare_directorys() {
 
     filesMovedTo="$(sqlite3 $BOARD_tmpFil "SELECT to_loc FROM move_files;")"
 
-    if [ -n "$filesMovedTo" ] ; then
-      ( echo "begin;"
-        echo "$filesMovedTo" \
-          | all_hierarchy_of_the_files \
-          | sed "s/^/DELETE FROM new WHERE file = '/ ; s/$/';/"
-        echo "commit;"
-      ) | sqlite3 $BOARD_tmpFil
+    ( echo "begin;"
+      echo "$filesMovedTo" \
+        | all_hierarchy_of_the_files \
+        | sed "s/^/DELETE FROM new WHERE file = '/ ; s/$/';/"
+      echo "commit;"
+    ) | sqlite3 $BOARD_tmpFil
 
-      ( echo "begin;"
-        echo "$filesMovedTo" \
-          | sed "s/^/DELETE FROM chg WHERE file = '/ ; s/$/';/"
-        echo "commit;"
-      ) | sqlite3 $BOARD_tmpFil
+    ( echo "begin;"
+      echo "$filesMovedTo" \
+        | sed "s/^/DELETE FROM chg WHERE file = '/ ; s/$/';/"
+      echo "commit;"
+    ) | sqlite3 $BOARD_tmpFil
 
-      sqlite3 $BOARD_tmpFil \
-        " update move_files
-             set from_loc = from_loc || ' --TailProtect-96H=UOW8WBQ--'; "
-    else
-      BOARD_moveFile="off"
-    fi
+    sqlite3 $BOARD_tmpFil \
+      " update move_files
+           set from_loc = from_loc || ' --TailProtect-96H=UOW8WBQ--'; "
   fi
 
   checkStr="$(sqlite3 $BOARD_tmpFil 'SELECT * FROM remv LIMIT 1;')"
