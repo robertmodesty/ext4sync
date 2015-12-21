@@ -321,6 +321,18 @@ function synchronize(){
       | bash || exit $?
   fi
 
+  remvs=$( sqlite3 $BOARD_tmpFil "SELECT type, file FROM replc
+                                   ORDER BY file;" \
+           | pack_into_one_directory \
+           | sed "s/'/'\\\\''/g ;
+                  s/^/'/ ;
+                  s/$/'/" )
+  if [ ${#remvs} != 0 ] ; then
+    echo rm -r $BOARD_verbose $remvs '|| exit $?' \
+      | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+      | bash || exit $?
+  fi
+
   if [ "on" == "$BOARD_moveFile" ] ; then
       eval mkdir -p $BOARD_verbose $(
        sqlite3 $BOARD_tmpFil "SELECT to_loc FROM move_files;" \
@@ -350,6 +362,14 @@ function synchronize(){
 
   sqlite3 $BOARD_tmpFil "SELECT file FROM chg
                           WHERE type = 'f'
+                          ORDER BY file;" \
+    | sed "s/'/'\\\\''/g ;
+           s|\(.*\)|cp -af $BOARD_verbose '$BOARD_fDir/\1' '\1'| ;
+           s/$/ || exit \$?/ ;
+           s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+    | bash || exit $?
+
+  sqlite3 $BOARD_tmpFil "SELECT file FROM replc
                           ORDER BY file;" \
     | sed "s/'/'\\\\''/g ;
            s|\(.*\)|cp -af $BOARD_verbose '$BOARD_fDir/\1' '\1'| ;
