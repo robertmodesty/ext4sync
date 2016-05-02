@@ -309,19 +309,9 @@ function synchronize(){
 
   cd $BOARD_tDir
 
-  remvs=$( sqlite3 $BOARD_tmpFil "SELECT type, file FROM remv
-                                   ORDER BY file;" \
-           | pack_into_one_directory \
-           | sed "s/'/'\\\\''/g ;
-                  s/^/'/ ;
-                  s/$/'/" )
-  if [ ${#remvs} != 0 ] ; then
-    echo rm -r $BOARD_verbose $remvs '|| exit $?' \
-      | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
-      | bash || exit $?
-  fi
-
-  remvs=$( sqlite3 $BOARD_tmpFil "SELECT type, file FROM replc
+  remvs=$( sqlite3 $BOARD_tmpFil "SELECT type, file FROM tdir
+                                   WHERE file IN (SELECT file FROM remv)
+                                      OR file IN (SELECT file FROM replc)
                                    ORDER BY file;" \
            | pack_into_one_directory \
            | sed "s/'/'\\\\''/g ;
@@ -351,7 +341,9 @@ function synchronize(){
       | bash || exit $?
   fi
 
-  sqlite3 $BOARD_tmpFil "SELECT type, file FROM new
+  sqlite3 $BOARD_tmpFil "SELECT type, file FROM fdir
+                          WHERE file IN (SELECT file FROM new)
+                             OR file IN (SELECT file FROM replc)
                           ORDER BY file;" \
     | pack_into_one_directory \
     | sed "s/'/'\\\\''/g ;
@@ -362,14 +354,6 @@ function synchronize(){
 
   sqlite3 $BOARD_tmpFil "SELECT file FROM chg
                           WHERE type = 'f'
-                          ORDER BY file;" \
-    | sed "s/'/'\\\\''/g ;
-           s|\(.*\)|cp -af $BOARD_verbose '$BOARD_fDir/\1' '\1'| ;
-           s/$/ || exit \$?/ ;
-           s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
-    | bash || exit $?
-
-  sqlite3 $BOARD_tmpFil "SELECT file FROM replc
                           ORDER BY file;" \
     | sed "s/'/'\\\\''/g ;
            s|\(.*\)|cp -af $BOARD_verbose '$BOARD_fDir/\1' '\1'| ;
