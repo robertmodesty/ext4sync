@@ -147,8 +147,6 @@ function get_both_directory_names() {
 
   BOARD_fDir="$( full_path "$fDir" )"
   BOARD_tDir="$( full_path "$tDir" )"
-
-  return $count
 }
 
 function test_if_it_is_root() {
@@ -169,11 +167,11 @@ function test_if_it_is_root() {
 
 
 function process_env_and_args() {
+  declare -i dirCount=2
 
   exit_if_no_sqlite3
 
   get_both_directory_names "$@"
-  shift $?
 
   while [ -n "$1" ] ; do
     case "$1" in
@@ -183,7 +181,24 @@ function process_env_and_args() {
       "-v"|"--verbose")
         BOARD_verbose="-v"
         ;;
+      "-")
+        shift
+        dirCount=dirCount-1
+        ;;
+      "-"*)
+        echo Error!
+        exit 1
+        ;;
+      *)
+        dirCount=dirCount-1
+        ;;
     esac
+
+    if [ $dirCount -lt 0 ] ; then
+      echo Error!
+      exit 1
+    fi
+
     shift
   done
 
