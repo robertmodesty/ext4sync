@@ -12,6 +12,7 @@
 ###### Settings ######
 
 readonly UserID=$( id -u )
+readonly ThisProgram="$0"
 
 BOARD_fDir=""
 BOARD_tDir=""
@@ -97,6 +98,18 @@ function all_hierarchy_of_the_files() {
     | uniq
 }
 
+function show_help_message() {
+  cat <<- EOF
+
+	Please use:  $ThisProgram [OPTIONS...] ORIGIN_DIRECTORY TARGET_DIRECTORY
+
+	    OPTIONS:
+	            -s, --skip-moving-files
+	            -v, --verbose
+
+	EOF
+}
+
 
 
 
@@ -135,7 +148,8 @@ function get_both_directory_names() {
   done
 
   if [ "$fDir" == "" ] || [ "$tDir" == "" ] ; then
-    echo Use: $0 SOURCE_DIRECTORY TARGET_DIRECTORY
+    echo "Error:  need two directories."
+    show_help_message
     exit 1
   elif [ ! -d "$fDir" ] ; then
     echo "Error:  '$fDir' is not a valid directory!"
@@ -186,7 +200,8 @@ function process_env_and_args() {
         dirCount=dirCount-1
         ;;
       "-"*)
-        echo Error!
+        echo Error!  Unknown option:  $1
+        show_help_message
         exit 1
         ;;
       *)
@@ -195,7 +210,8 @@ function process_env_and_args() {
     esac
 
     if [ $dirCount -lt 0 ] ; then
-      echo Error!
+      echo Error:  Too many directories.
+      show_help_message
       exit 1
     fi
 
