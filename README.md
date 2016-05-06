@@ -14,5 +14,5 @@ SYNOPSIS
 
 DESCRIPTION
 
-        -s, --skip-moving-files
+        -m, --moving-files
         -v, --verbose

@@ -17,7 +17,7 @@ readonly ThisProgram="$0"
 BOARD_fDir=""
 BOARD_tDir=""
 BOARD_tmpFil=""
-BOARD_moveFile="on"
+BOARD_moveFile="off"
 BOARD_rmOld=""
 BOARD_cpNew=""
 BOARD_verbose=""
@@ -104,7 +104,7 @@ function show_help_message() {
 	Please use:  $ThisProgram [OPTIONS...] ORIGIN_DIRECTORY TARGET_DIRECTORY
 
 	    OPTIONS:
-	            -s, --skip-moving-files
+	            -m, --moving-files
 	            -v, --verbose
 
 	EOF
@@ -189,8 +189,8 @@ function process_env_and_args() {
 
   while [ -n "$1" ] ; do
     case "$1" in
-      "-s"|"--skip-moving-files")
-        BOARD_moveFile="off"
+      "-m"|"--moving-files")
+        BOARD_moveFile="on"
         ;;
       "-v"|"--verbose")
         BOARD_verbose="-v"
