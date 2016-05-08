@@ -14,18 +14,18 @@
 readonly UserID=$( id -u )
 readonly ThisProgram="$0"
 
-BOARD_fDir=""
-BOARD_tDir=""
-BOARD_tmpFil=""
 BOARD_moveFile="off"
 BOARD_rmOld=""
 BOARD_cpNew=""
 BOARD_verbose=""
 
+#   setup in function get_both_directory_names():
+#       readonly FromDir
+#       readonly ToDir
+
 #   setup in function process_env_and_args():
+#       readonly SQLFile
 #       readonly is_Root
-
-
 
 
 
@@ -159,8 +159,8 @@ function get_both_directory_names() {
     exit 1
   fi
 
-  BOARD_fDir="$( full_path "$fDir" )"
-  BOARD_tDir="$( full_path "$tDir" )"
+  readonly FromDir="$( full_path "$fDir" )"
+  readonly ToDir="$( full_path "$tDir" )"
 }
 
 function test_if_it_is_root() {
@@ -218,7 +218,7 @@ function process_env_and_args() {
     shift
   done
 
-  BOARD_tmpFil=$(mktemp --suffix=.db)
+  readonly SQLFile=$(mktemp --suffix=.db)
 
   readonly is_Root=$(test_if_it_is_root)
 }
@@ -245,7 +245,7 @@ function scan_directory() {
      | sed "s/+/ /; s/'/''/g" \
      | new_line_protect \
      | sed "$Hash2quote"
-   echo "COMMIT;") | sqlite3 $BOARD_tmpFil
+   echo "COMMIT;") | sqlite3 $SQLFile
   cd - > /dev/null
 }
 
@@ -253,7 +253,7 @@ function scan_directory() {
 function compare_directorys() {
   local sqlCmd filesMovedTo checkStr
 
-  sqlite3 $BOARD_tmpFil <<- EOF
+  sqlite3 $SQLFile <<- EOF
 
 	CREATE TABLE remv AS SELECT * FROM tdir
 	    WHERE file NOT IN (SELECT file FROM fdir);
@@ -293,46 +293,46 @@ function compare_directorys() {
 	EOF
 
   if [ "on" == "$BOARD_moveFile" ] ; then
-    checkStr="$(sqlite3 $BOARD_tmpFil 'SELECT * FROM move_files LIMIT 1;')"
+    checkStr="$(sqlite3 $SQLFile 'SELECT * FROM move_files LIMIT 1;')"
     test -z "$checkStr" && BOARD_moveFile="off"
   fi
 
   if [ "on" == "$BOARD_moveFile" ] ; then
     sqlCmd="$(
       echo "begin;"
-      sqlite3 $BOARD_tmpFil "SELECT from_loc FROM move_files;" \
+      sqlite3 $SQLFile "SELECT from_loc FROM move_files;" \
         | sed "s/^/DELETE FROM remv WHERE file = '/ ; s/$/';/"
       echo "commit;"
     )"
-    echo "$sqlCmd" | sqlite3 $BOARD_tmpFil
+    echo "$sqlCmd" | sqlite3 $SQLFile
     unset sqlCmd
 
-    filesMovedTo="$(sqlite3 $BOARD_tmpFil "SELECT to_loc FROM move_files;")"
+    filesMovedTo="$(sqlite3 $SQLFile "SELECT to_loc FROM move_files;")"
 
     ( echo "begin;"
       echo "$filesMovedTo" \
         | all_hierarchy_of_the_files \
         | sed "s/^/DELETE FROM new WHERE file = '/ ; s/$/';/"
       echo "commit;"
-    ) | sqlite3 $BOARD_tmpFil
+    ) | sqlite3 $SQLFile
 
     ( echo "begin;"
       echo "$filesMovedTo" \
         | sed "s/^/DELETE FROM chg WHERE file = '/ ; s/$/';/"
       echo "commit;"
-    ) | sqlite3 $BOARD_tmpFil
+    ) | sqlite3 $SQLFile
 
-    sqlite3 $BOARD_tmpFil \
+    sqlite3 $SQLFile \
       " update move_files
            set from_loc = from_loc || ' --TailProtect-96H=UOW8WBQ--'; "
   fi
 
-  checkStr="$(sqlite3 $BOARD_tmpFil '
+  checkStr="$(sqlite3 $SQLFile '
                  SELECT * FROM remv LIMIT 1;
                  SELECT * FROM replc LIMIT 1;')"
   test -z "$checkStr" && BOARD_rmOld="off" || BOARD_rmOld="on"
 
-  checkStr="$(sqlite3 $BOARD_tmpFil '
+  checkStr="$(sqlite3 $SQLFile '
                  SELECT * FROM new LIMIT 1;
                  SELECT * FROM replc LIMIT 1;')"
   test -z "$checkStr" && BOARD_cpNew="off" || BOARD_cpNew="on"
@@ -342,19 +342,19 @@ function compare_directorys() {
 function synchronize(){
   local moveProtctDir remvs
 
-  cd $BOARD_tDir
+  cd $ToDir
 
   if [ "on" == "$BOARD_moveFile" ] ; then
-      moveProtctDir="$( mktemp -d -p $BOARD_tDir )"
+      moveProtctDir="$( mktemp -d -p $ToDir )"
       eval mkdir -p $BOARD_verbose $(
-       sqlite3 $BOARD_tmpFil "SELECT to_loc FROM move_files;" \
+       sqlite3 $SQLFile "SELECT to_loc FROM move_files;" \
        | sed "s/'/'\\\\''/g ;
               s|/[^/]*$|| ;
               s|^| '$moveProtctDir/| ; s/$/'/ ;
               s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
       ) || exit $?
 
-      sqlite3 $BOARD_tmpFil "SELECT * FROM move_files;" \
+      sqlite3 $SQLFile "SELECT * FROM move_files;" \
       | sed "s/'/'\\\\''/g ;
              s/^/mv $BOARD_verbose '/ ;
              s/ --TailProtect-96H=UOW8WBQ--|/ --TailProtect-96H=UOW8WBQ--/ ;
@@ -364,7 +364,7 @@ function synchronize(){
       | bash || exit $?
   fi
 
-  remvs=$( sqlite3 $BOARD_tmpFil "SELECT type, file FROM tdir
+  remvs=$( sqlite3 $SQLFile "SELECT type, file FROM tdir
                                    WHERE file IN (SELECT file FROM remv)
                                       OR file IN (SELECT file FROM replc)
                                    ORDER BY file;" \
@@ -380,14 +380,14 @@ function synchronize(){
 
   if [ "on" == "$BOARD_moveFile" ] ; then
       eval mkdir -p $BOARD_verbose $(
-       sqlite3 $BOARD_tmpFil "SELECT to_loc FROM move_files;" \
+       sqlite3 $SQLFile "SELECT to_loc FROM move_files;" \
        | sed "s/'/'\\\\''/g ;
               s|/[^/]*$|| ;
               s/^/ '/ ; s/$/'/ ;
               s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
       ) || exit $?
 
-      sqlite3 $BOARD_tmpFil "SELECT to_loc FROM move_files;" \
+      sqlite3 $SQLFile "SELECT to_loc FROM move_files;" \
       | sed "s/'/'\\\\''/g ;
              s|^\(.*\)$|mv $BOARD_verbose '$moveProtctDir/\1' '\1'| ;
              s/$/ || exit \$?/ ;
@@ -395,27 +395,27 @@ function synchronize(){
       | bash || exit $?
   fi
 
-  sqlite3 $BOARD_tmpFil "SELECT type, file FROM fdir
+  sqlite3 $SQLFile "SELECT type, file FROM fdir
                           WHERE file IN (SELECT file FROM new)
                              OR file IN (SELECT file FROM replc)
                           ORDER BY file;" \
     | pack_into_one_directory \
     | sed "s/'/'\\\\''/g ;
-           s|\(.*\)|cp -a $BOARD_verbose '$BOARD_fDir/\1' '\1'| ;
+           s|\(.*\)|cp -a $BOARD_verbose '$FromDir/\1' '\1'| ;
            s/$/ || exit \$?/ ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     | bash || exit $?
 
-  sqlite3 $BOARD_tmpFil "SELECT file FROM chg
+  sqlite3 $SQLFile "SELECT file FROM chg
                           WHERE type = 'f'
                           ORDER BY file;" \
     | sed "s/'/'\\\\''/g ;
-           s|\(.*\)|cp -af $BOARD_verbose '$BOARD_fDir/\1' '\1'| ;
+           s|\(.*\)|cp -af $BOARD_verbose '$FromDir/\1' '\1'| ;
            s/$/ || exit \$?/ ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     | bash || exit $?
 
-  sqlite3 $BOARD_tmpFil "SELECT time, file FROM fdir
+  sqlite3 $SQLFile "SELECT time, file FROM fdir
                           WHERE type = 'd'
                           ORDER BY file
                           DESC;" \
@@ -446,19 +446,19 @@ function main() {
 
   process_env_and_args "$@"
 
-  echo "1.  Scanning '$BOARD_fDir'..."
-  scan_directory fdir "$BOARD_fDir"
+  echo "1.  Scanning '$FromDir'..."
+  scan_directory fdir "$FromDir"
 
-  echo "2.  Scanning '$BOARD_tDir'..."
-  scan_directory tdir "$BOARD_tDir"
+  echo "2.  Scanning '$ToDir'..."
+  scan_directory tdir "$ToDir"
 
   echo "3.  Comparing two directorys..."
   compare_directorys
 
-  echo "4.  Synchronizing to '$BOARD_tDir'"
+  echo "4.  Synchronizing to '$ToDir'"
   synchronize
 
-  rm $BOARD_tmpFil
+  rm $SQLFile
 }
 
 
