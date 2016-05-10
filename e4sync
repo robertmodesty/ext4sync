@@ -14,21 +14,21 @@
 readonly UserID=$( id -u )
 readonly ThisProgram="$0"
 
-BOARD_rmOld=""
-BOARD_cpNew=""
-BOARD_verbose=""
-
 #   setup in function get_both_directory_names():
 #       readonly FromDir
 #       readonly ToDir
 
 #   setup in function process_env_and_args():
 #       readonly Arg_Sets_Move_Files
+#       readonly VerbsOptn
 #       readonly SQLFile
 #       readonly is_Root
 
 #   setup in function compare_directorys():
 #       readonly There_Are_Files_To_Move
+#       readonly RemoveOld
+#       readonly CopyNew
+
 
 
 
@@ -191,6 +191,7 @@ function process_env_and_args() {
   get_both_directory_names "$@"
 
   Arg_Sets_Move_Files="false"
+  VerbsOptn=""
 
   while [ -n "$1" ] ; do
     case "$1" in
@@ -198,7 +199,7 @@ function process_env_and_args() {
         Arg_Sets_Move_Files="true"
         ;;
       "-v"|"--verbose")
-        BOARD_verbose="-v"
+        VerbsOptn="-v"
         ;;
       "-")
         shift
@@ -224,6 +225,7 @@ function process_env_and_args() {
   done
 
   readonly Arg_Sets_Move_Files
+  readonly VerbsOptn
 
   readonly SQLFile=$(mktemp --suffix=.db)
 
@@ -339,12 +341,12 @@ function compare_directorys() {
   checkStr="$(sqlite3 $SQLFile '
                  SELECT * FROM remv LIMIT 1;
                  SELECT * FROM replc LIMIT 1;')"
-  test -z "$checkStr" && BOARD_rmOld="off" || BOARD_rmOld="on"
+  test -z "$checkStr" && readonly RemoveOld="off" || readonly RemoveOld="on"
 
   checkStr="$(sqlite3 $SQLFile '
                  SELECT * FROM new LIMIT 1;
                  SELECT * FROM replc LIMIT 1;')"
-  test -z "$checkStr" && BOARD_cpNew="off" || BOARD_cpNew="on"
+  test -z "$checkStr" && readonly CopyNew="off" || readonly CopyNew="on"
 }
 
 
@@ -355,7 +357,7 @@ function synchronize(){
 
   if $There_Are_Files_To_Move ; then
       moveProtctDir="$( mktemp -d -p $ToDir )"
-      eval mkdir -p $BOARD_verbose $(
+      eval mkdir -p $VerbsOptn $(
        sqlite3 $SQLFile "SELECT to_loc FROM move_files;" \
        | sed "s/'/'\\\\''/g ;
               s|/[^/]*$|| ;
@@ -365,7 +367,7 @@ function synchronize(){
 
       sqlite3 $SQLFile "SELECT * FROM move_files;" \
       | sed "s/'/'\\\\''/g ;
-             s/^/mv $BOARD_verbose '/ ;
+             s/^/mv $VerbsOptn '/ ;
              s/ --TailProtect-96H=UOW8WBQ--|/ --TailProtect-96H=UOW8WBQ--/ ;
              s| --TailProtect-96H=UOW8WBQ--|' '$moveProtctDir/| ;
              s/$/' || exit \$?/ ;
@@ -382,13 +384,13 @@ function synchronize(){
                   s/^/'/ ;
                   s/$/'/" )
   if [ ${#remvs} != 0 ] ; then
-    echo rm -r $BOARD_verbose $remvs '|| exit $?' \
+    echo rm -r $VerbsOptn $remvs '|| exit $?' \
       | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
       | bash || exit $?
   fi
 
   if $There_Are_Files_To_Move ; then
-      eval mkdir -p $BOARD_verbose $(
+      eval mkdir -p $VerbsOptn $(
        sqlite3 $SQLFile "SELECT to_loc FROM move_files;" \
        | sed "s/'/'\\\\''/g ;
               s|/[^/]*$|| ;
@@ -398,7 +400,7 @@ function synchronize(){
 
       sqlite3 $SQLFile "SELECT to_loc FROM move_files;" \
       | sed "s/'/'\\\\''/g ;
-             s|^\(.*\)$|mv $BOARD_verbose '$moveProtctDir/\1' '\1'| ;
+             s|^\(.*\)$|mv $VerbsOptn '$moveProtctDir/\1' '\1'| ;
              s/$/ || exit \$?/ ;
              s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
       | bash || exit $?
@@ -410,7 +412,7 @@ function synchronize(){
                           ORDER BY file;" \
     | pack_into_one_directory \
     | sed "s/'/'\\\\''/g ;
-           s|\(.*\)|cp -a $BOARD_verbose '$FromDir/\1' '\1'| ;
+           s|\(.*\)|cp -a $VerbsOptn '$FromDir/\1' '\1'| ;
            s/$/ || exit \$?/ ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     | bash || exit $?
@@ -419,7 +421,7 @@ function synchronize(){
                           WHERE type = 'f'
                           ORDER BY file;" \
     | sed "s/'/'\\\\''/g ;
-           s|\(.*\)|cp -af $BOARD_verbose '$FromDir/\1' '\1'| ;
+           s|\(.*\)|cp -af $VerbsOptn '$FromDir/\1' '\1'| ;
            s/$/ || exit \$?/ ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     | bash || exit $?
