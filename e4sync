@@ -275,7 +275,7 @@ function compare_directorys() {
 	    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size)
 	          AND fdir.type = tdir.type;
 
-	CREATE TABLE replc AS SELECT fdir.*
+	CREATE TABLE typechg AS SELECT fdir.*
 	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
 	    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size)
 	          AND NOT fdir.type = tdir.type;
@@ -284,11 +284,11 @@ function compare_directorys() {
 	INSERT INTO all_old SELECT * FROM tdir
 	  WHERE file IN (SELECT file FROM chg);
 	INSERT INTO all_old SELECT * FROM tdir
-	  WHERE file IN (SELECT file FROM replc);
+	  WHERE file IN (SELECT file FROM typechg);
 
 	CREATE TEMP TABLE all_new AS SELECT * FROM new;
 	INSERT INTO all_new SELECT * FROM chg;
-	INSERT INTO all_new SELECT * FROM replc;
+	INSERT INTO all_new SELECT * FROM typechg;
 
 	CREATE TABLE move_files
 	        AS SELECT all_old.file AS from_loc, all_new.file AS to_loc
@@ -340,12 +340,12 @@ function compare_directorys() {
 
   checkStr="$(sqlite3 $SQLFile '
                  SELECT * FROM remv LIMIT 1;
-                 SELECT * FROM replc LIMIT 1;')"
+                 SELECT * FROM typechg LIMIT 1;')"
   test -z "$checkStr" && readonly RemoveOld="off" || readonly RemoveOld="on"
 
   checkStr="$(sqlite3 $SQLFile '
                  SELECT * FROM new LIMIT 1;
-                 SELECT * FROM replc LIMIT 1;')"
+                 SELECT * FROM typechg LIMIT 1;')"
   test -z "$checkStr" && readonly CopyNew="off" || readonly CopyNew="on"
 }
 
@@ -377,7 +377,7 @@ function synchronize(){
 
   remvs=$( sqlite3 $SQLFile "SELECT type, file FROM tdir
                                    WHERE file IN (SELECT file FROM remv)
-                                      OR file IN (SELECT file FROM replc)
+                                      OR file IN (SELECT file FROM typechg)
                                    ORDER BY file;" \
            | pack_into_one_directory \
            | sed "s/'/'\\\\''/g ;
@@ -408,7 +408,7 @@ function synchronize(){
 
   sqlite3 $SQLFile "SELECT type, file FROM fdir
                           WHERE file IN (SELECT file FROM new)
-                             OR file IN (SELECT file FROM replc)
+                             OR file IN (SELECT file FROM typechg)
                           ORDER BY file;" \
     | pack_into_one_directory \
     | sed "s/'/'\\\\''/g ;
