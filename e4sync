@@ -408,7 +408,11 @@ function synchronize(){
 
   sqlite3 $SQLFile "SELECT type, file FROM fdir
                           WHERE file IN (SELECT file FROM new)
-                             OR file IN (SELECT file FROM typechg)
+                             OR file IN (SELECT file FROM typechg
+                                           WHERE file NOT IN (
+                                              SELECT to_loc FROM move_files
+                                             )
+                                        )
                           ORDER BY file;" \
     | pack_into_one_directory \
     | sed "s/'/'\\\\''/g ;
