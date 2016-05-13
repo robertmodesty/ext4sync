@@ -260,7 +260,7 @@ function scan_directory() {
 
 
 function compare_directorys() {
-  local sqlCmd filesMovedTo checkStr
+  local sqlCmd filesMovedFrom filesMovedTo checkStr
 
   sqlite3 $SQLFile <<- EOF
 
@@ -299,6 +299,8 @@ function compare_directorys() {
 	      AND all_old.type = all_new.type
 	      AND all_old.subsecond != '0000000000'
 	      AND all_old.type = "f";
+
+	CREATE TABLE move_from_and_all_hierarchy(file);
 	EOF
 
   There_Are_Files_To_Move="false"
@@ -309,6 +311,16 @@ function compare_directorys() {
   readonly There_Are_Files_To_Move
 
   if $There_Are_Files_To_Move ; then
+
+    filesMovedFrom="$(sqlite3 $SQLFile "SELECT from_loc FROM move_files;")"
+    ( echo "begin;"
+      echo "$filesMovedFrom" \
+        | sed "s/'/''/g" \
+        | all_hierarchy_of_the_files \
+        | sed "s/^/INSERT INTO move_from_and_all_hierarchy VALUES('/ ; s/$/');/"
+      echo "commit;"
+    ) | sqlite3 $SQLFile
+
     sqlCmd="$(
       echo "begin;"
       sqlite3 $SQLFile "SELECT from_loc FROM move_files;" \
