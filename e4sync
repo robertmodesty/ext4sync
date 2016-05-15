@@ -279,7 +279,12 @@ function compare_directorys() {
 	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
 	    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size)
 	          AND NOT fdir.type = tdir.type;
+	EOF
 
+  There_Are_Files_To_Move="false"
+  if $Arg_Sets_Move_Files ; then
+
+    sqlite3 $SQLFile <<- EOF
 	CREATE TEMP TABLE all_old AS SELECT * FROM remv;
 	INSERT INTO all_old SELECT * FROM tdir
 	  WHERE file IN (SELECT file FROM chg);
@@ -299,22 +304,19 @@ function compare_directorys() {
 	      AND all_old.type = all_new.type
 	      AND all_old.subsecond != '0000000000'
 	      AND all_old.type = "f";
-
-	CREATE TABLE move_from_and_all_hierarchy(file);
-	CREATE TABLE move_to_and_all_hierarchy(file);
 	EOF
-
-  There_Are_Files_To_Move="false"
-  if $Arg_Sets_Move_Files ; then
     checkStr="$(sqlite3 $SQLFile 'SELECT * FROM move_files LIMIT 1;')"
     test -n "$checkStr" && There_Are_Files_To_Move="true"
+  else
+    sqlite3 $SQLFile 'CREATE TABLE move_files(from_loc, to_loc);'
   fi
   readonly There_Are_Files_To_Move
 
   if $There_Are_Files_To_Move ; then
 
     filesMovedFrom="$(sqlite3 $SQLFile "SELECT from_loc FROM move_files;")"
-    ( echo "begin;"
+    ( echo "CREATE TABLE move_from_and_all_hierarchy(file);"
+      echo "begin;"
       echo "$filesMovedFrom" \
         | sed "s/'/''/g" \
         | all_hierarchy_of_the_files \
@@ -332,7 +334,8 @@ function compare_directorys() {
     unset sqlCmd
 
     filesMovedTo="$(sqlite3 $SQLFile "SELECT to_loc FROM move_files;")"
-    ( echo "begin;"
+    ( echo "CREATE TABLE move_to_and_all_hierarchy(file);"
+      echo "begin;"
       echo "$filesMovedTo" \
         | sed "s/'/''/g" \
         | all_hierarchy_of_the_files \
