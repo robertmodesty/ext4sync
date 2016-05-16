@@ -117,7 +117,7 @@ function show_help_message() {
 
 
 ####################
-# Middle Functions
+# Functions for Environment
 ########################################################################
 
 
@@ -179,7 +179,38 @@ function test_if_it_is_root() {
 
 
 ####################
-# functions of all steps
+# Functions for Compare Directorys
+########################################################################
+
+
+function create_the_difference_tables() {
+
+  sqlite3 $SQLFile <<- EOF
+
+	CREATE TABLE remv AS SELECT * FROM tdir
+	    WHERE file NOT IN (SELECT file FROM fdir);
+
+	CREATE TABLE new AS SELECT * FROM fdir
+	    WHERE file NOT IN (SELECT file FROM tdir);
+
+	CREATE TABLE chg AS SELECT fdir.*
+	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
+	    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size)
+	          AND fdir.type = tdir.type;
+
+	CREATE TABLE typechg AS SELECT fdir.*
+	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
+	    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size)
+	          AND NOT fdir.type = tdir.type;
+	EOF
+}
+
+
+
+
+
+####################
+# Functions of All Steps
 ########################################################################
 
 
@@ -262,24 +293,7 @@ function scan_directory() {
 function compare_directorys() {
   local sqlCmd filesMovedFrom filesMovedTo checkStr
 
-  sqlite3 $SQLFile <<- EOF
-
-	CREATE TABLE remv AS SELECT * FROM tdir
-	    WHERE file NOT IN (SELECT file FROM fdir);
-
-	CREATE TABLE new AS SELECT * FROM fdir
-	    WHERE file NOT IN (SELECT file FROM tdir);
-
-	CREATE TABLE chg AS SELECT fdir.*
-	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
-	    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size)
-	          AND fdir.type = tdir.type;
-
-	CREATE TABLE typechg AS SELECT fdir.*
-	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
-	    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size)
-	          AND NOT fdir.type = tdir.type;
-	EOF
+  create_the_difference_tables
 
   There_Are_Files_To_Move="false"
   if $Arg_Sets_Move_Files ; then
