@@ -205,6 +205,31 @@ function create_the_difference_tables() {
 	EOF
 }
 
+function create_the_move_files_table() {
+
+  sqlite3 $SQLFile <<- EOF
+	CREATE TEMP TABLE all_old AS SELECT * FROM remv;
+	INSERT INTO all_old SELECT * FROM tdir
+	  WHERE file IN (SELECT file FROM chg);
+	INSERT INTO all_old SELECT * FROM tdir
+	  WHERE file IN (SELECT file FROM typechg);
+
+	CREATE TEMP TABLE all_new AS SELECT * FROM new;
+	INSERT INTO all_new SELECT * FROM chg;
+	INSERT INTO all_new SELECT * FROM typechg;
+
+	CREATE TABLE move_files
+	        AS SELECT all_old.file AS from_loc, all_new.file AS to_loc
+	    FROM all_old INNER JOIN all_new
+	    WHERE all_old.filename = all_new.filename
+	      AND all_old.time = all_new.time
+	      AND all_old.size = all_new.size
+	      AND all_old.type = all_new.type
+	      AND all_old.subsecond != '0000000000'
+	      AND all_old.type = "f";
+	EOF
+}
+
 
 
 
@@ -297,28 +322,7 @@ function compare_directorys() {
 
   There_Are_Files_To_Move="false"
   if $Arg_Sets_Move_Files ; then
-
-    sqlite3 $SQLFile <<- EOF
-	CREATE TEMP TABLE all_old AS SELECT * FROM remv;
-	INSERT INTO all_old SELECT * FROM tdir
-	  WHERE file IN (SELECT file FROM chg);
-	INSERT INTO all_old SELECT * FROM tdir
-	  WHERE file IN (SELECT file FROM typechg);
-
-	CREATE TEMP TABLE all_new AS SELECT * FROM new;
-	INSERT INTO all_new SELECT * FROM chg;
-	INSERT INTO all_new SELECT * FROM typechg;
-
-	CREATE TABLE move_files
-	        AS SELECT all_old.file AS from_loc, all_new.file AS to_loc
-	    FROM all_old INNER JOIN all_new
-	    WHERE all_old.filename = all_new.filename
-	      AND all_old.time = all_new.time
-	      AND all_old.size = all_new.size
-	      AND all_old.type = all_new.type
-	      AND all_old.subsecond != '0000000000'
-	      AND all_old.type = "f";
-	EOF
+    create_the_move_files_table
     checkStr="$(sqlite3 $SQLFile 'SELECT * FROM move_files LIMIT 1;')"
     test -n "$checkStr" && There_Are_Files_To_Move="true"
   else
