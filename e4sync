@@ -231,6 +231,32 @@ function create_the_move_files_table() {
 }
 
 
+function create_hierarchy_tables_of_moved_files() {
+  local filesMovedFrom filesMovedTo
+
+  filesMovedFrom="$(sqlite3 $SQLFile 'SELECT from_loc FROM move_files;')"
+
+  ( echo "CREATE TABLE move_from_and_all_hierarchy(file);"
+    echo "begin;"
+    echo "$filesMovedFrom" \
+      | sed "s/'/''/g" \
+      | all_hierarchy_of_the_files \
+      | sed "s/^/INSERT INTO move_from_and_all_hierarchy VALUES('/ ; s/$/');/"
+    echo "commit;"
+  ) | sqlite3 $SQLFile
+
+  filesMovedTo="$(sqlite3 $SQLFile "SELECT to_loc FROM move_files;")"
+
+  ( echo "CREATE TABLE move_to_and_all_hierarchy(file);"
+    echo "begin;"
+    echo "$filesMovedTo" \
+      | sed "s/'/''/g" \
+      | all_hierarchy_of_the_files \
+      | sed "s/^/INSERT INTO move_to_and_all_hierarchy VALUES('/ ; s/$/');/"
+    echo "commit;"
+  ) | sqlite3 $SQLFile
+}
+
 
 
 
@@ -316,7 +342,7 @@ function scan_directory() {
 
 
 function compare_directorys() {
-  local sqlCmd filesMovedFrom filesMovedTo checkStr
+  local sqlCmd filesMovedTo checkStr
 
   create_the_difference_tables
 
@@ -332,15 +358,7 @@ function compare_directorys() {
 
   if $There_Are_Files_To_Move ; then
 
-    filesMovedFrom="$(sqlite3 $SQLFile "SELECT from_loc FROM move_files;")"
-    ( echo "CREATE TABLE move_from_and_all_hierarchy(file);"
-      echo "begin;"
-      echo "$filesMovedFrom" \
-        | sed "s/'/''/g" \
-        | all_hierarchy_of_the_files \
-        | sed "s/^/INSERT INTO move_from_and_all_hierarchy VALUES('/ ; s/$/');/"
-      echo "commit;"
-    ) | sqlite3 $SQLFile
+    create_hierarchy_tables_of_moved_files
 
     sqlCmd="$(
       echo "begin;"
@@ -352,14 +370,6 @@ function compare_directorys() {
     unset sqlCmd
 
     filesMovedTo="$(sqlite3 $SQLFile "SELECT to_loc FROM move_files;")"
-    ( echo "CREATE TABLE move_to_and_all_hierarchy(file);"
-      echo "begin;"
-      echo "$filesMovedTo" \
-        | sed "s/'/''/g" \
-        | all_hierarchy_of_the_files \
-        | sed "s/^/INSERT INTO move_to_and_all_hierarchy VALUES('/ ; s/$/');/"
-      echo "commit;"
-    ) | sqlite3 $SQLFile
 
     ( echo "begin;"
       echo "$filesMovedTo" \
