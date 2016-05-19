@@ -257,6 +257,36 @@ function create_hierarchy_tables_of_moved_files() {
   ) | sqlite3 $SQLFile
 }
 
+function update_the_tables_with_moved_files() {
+  local filesMovedFrom filesMovedTo
+
+  filesMovedFrom="$(sqlite3 $SQLFile 'SELECT from_loc FROM move_files;')"
+
+  ( echo "begin;"
+    echo "$filesMovedFrom" \
+      | sed "s/'/''/g ;
+             s/^/DELETE FROM remv WHERE file = '/ ; s/$/';/"
+    echo "commit;"
+  ) | sqlite3 $SQLFile
+
+  filesMovedTo="$(sqlite3 $SQLFile 'SELECT to_loc FROM move_files;')"
+
+  ( echo "begin;"
+    echo "$filesMovedTo" \
+      | all_hierarchy_of_the_files \
+      | sed "s/'/''/g ;
+             s/^/DELETE FROM new WHERE file = '/ ; s/$/';/"
+    echo "commit;"
+  ) | sqlite3 $SQLFile
+
+  ( echo "begin;"
+    echo "$filesMovedTo" \
+      | sed "s/'/''/g ;
+             s/^/DELETE FROM chg WHERE file = '/ ; s/$/';/"
+    echo "commit;"
+  ) | sqlite3 $SQLFile
+}
+
 
 
 
@@ -342,7 +372,7 @@ function scan_directory() {
 
 
 function compare_directorys() {
-  local sqlCmd filesMovedTo checkStr
+  local checkStr
 
   create_the_difference_tables
 
@@ -360,29 +390,7 @@ function compare_directorys() {
 
     create_hierarchy_tables_of_moved_files
 
-    sqlCmd="$(
-      echo "begin;"
-      sqlite3 $SQLFile "SELECT from_loc FROM move_files;" \
-        | sed "s/^/DELETE FROM remv WHERE file = '/ ; s/$/';/"
-      echo "commit;"
-    )"
-    echo "$sqlCmd" | sqlite3 $SQLFile
-    unset sqlCmd
-
-    filesMovedTo="$(sqlite3 $SQLFile "SELECT to_loc FROM move_files;")"
-
-    ( echo "begin;"
-      echo "$filesMovedTo" \
-        | all_hierarchy_of_the_files \
-        | sed "s/^/DELETE FROM new WHERE file = '/ ; s/$/';/"
-      echo "commit;"
-    ) | sqlite3 $SQLFile
-
-    ( echo "begin;"
-      echo "$filesMovedTo" \
-        | sed "s/^/DELETE FROM chg WHERE file = '/ ; s/$/';/"
-      echo "commit;"
-    ) | sqlite3 $SQLFile
+    update_the_tables_with_moved_files
 
     sqlite3 $SQLFile \
       " update move_files
