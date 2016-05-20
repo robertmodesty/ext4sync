@@ -291,6 +291,35 @@ function update_the_tables_with_moved_files() {
 
 
 ####################
+# Functions Synchronizing Directorys
+########################################################################
+
+function store_files_to_be_moved() {
+  local moveProtctDir="$1"
+
+    eval mkdir -p $VerbsOptn $(
+     sqlite3 $SQLFile "SELECT to_loc FROM move_files;" \
+      | sed "s/'/'\\\\''/g ;
+             s|/[^/]*$|| ;
+             s|^| '$moveProtctDir/| ; s/$/'/ ;
+             s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+    ) || exit $?
+
+    sqlite3 $SQLFile "SELECT * FROM move_files;" \
+     | sed "s/'/'\\\\''/g ;
+            s/^/mv $VerbsOptn '/ ;
+            s/ --TailProtect-96H=UOW8WBQ--|/ --TailProtect-96H=UOW8WBQ--/ ;
+            s| --TailProtect-96H=UOW8WBQ--|' '$moveProtctDir/| ;
+            s/$/' || exit \$?/ ;
+            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+     | bash || exit $?
+}
+
+
+
+
+
+####################
 # Functions of All Steps
 ########################################################################
 
@@ -415,23 +444,8 @@ function synchronize(){
   cd $ToDir
 
   if $There_Are_Files_To_Move ; then
-      moveProtctDir="$( mktemp -d -p $ToDir )"
-      eval mkdir -p $VerbsOptn $(
-       sqlite3 $SQLFile "SELECT to_loc FROM move_files;" \
-       | sed "s/'/'\\\\''/g ;
-              s|/[^/]*$|| ;
-              s|^| '$moveProtctDir/| ; s/$/'/ ;
-              s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
-      ) || exit $?
-
-      sqlite3 $SQLFile "SELECT * FROM move_files;" \
-      | sed "s/'/'\\\\''/g ;
-             s/^/mv $VerbsOptn '/ ;
-             s/ --TailProtect-96H=UOW8WBQ--|/ --TailProtect-96H=UOW8WBQ--/ ;
-             s| --TailProtect-96H=UOW8WBQ--|' '$moveProtctDir/| ;
-             s/$/' || exit \$?/ ;
-             s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
-      | bash || exit $?
+    moveProtctDir="$( mktemp -d -p $ToDir )"
+    store_files_to_be_moved $moveProtctDir
   fi
 
   remvs=$( sqlite3 $SQLFile "SELECT type, file FROM tdir
