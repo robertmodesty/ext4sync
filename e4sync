@@ -305,7 +305,11 @@ function store_files_to_be_moved() {
              s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     ) || exit $?
 
-    sqlite3 $SQLFile "SELECT * FROM move_files;" \
+    sqlite3 $SQLFile "
+        CREATE TEMP TABLE move_file_temp AS SELECT * FROM move_files;
+        UPDATE move_file_temp
+         SET from_loc = from_loc || ' --TailProtect-96H=UOW8WBQ--';
+        SELECT * FROM move_file_temp;" \
      | sed "s/'/'\\\\''/g ;
             s/^/mv $VerbsOptn '/ ;
             s/ --TailProtect-96H=UOW8WBQ--|/ --TailProtect-96H=UOW8WBQ--/ ;
@@ -421,9 +425,6 @@ function compare_directorys() {
 
     update_the_tables_with_moved_files
 
-    sqlite3 $SQLFile \
-      " update move_files
-           set from_loc = from_loc || ' --TailProtect-96H=UOW8WBQ--'; "
   fi
 
   checkStr="$(sqlite3 $SQLFile '
