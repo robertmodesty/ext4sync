@@ -319,6 +319,23 @@ function store_files_to_be_moved() {
      | bash || exit $?
 }
 
+function remove_old_files() {
+  local remvs
+
+  remvs=$( sqlite3 $SQLFile "SELECT type, file FROM tdir
+                                   WHERE file IN (SELECT file FROM remv)
+                                      OR file IN (SELECT file FROM typechg)
+                                   ORDER BY file;" \
+           | pack_into_one_directory \
+           | sed "s/'/'\\\\''/g ;
+                  s/^/'/ ;
+                  s/$/'/" )
+  if [ ${#remvs} != 0 ] ; then
+    echo rm -r $VerbsOptn $remvs '|| exit $?' \
+      | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+      | bash || exit $?
+  fi
+}
 
 
 
@@ -440,7 +457,7 @@ function compare_directorys() {
 
 
 function synchronize(){
-  local moveProtctDir remvs
+  local moveProtctDir
 
   cd $ToDir
 
@@ -449,19 +466,7 @@ function synchronize(){
     store_files_to_be_moved $moveProtctDir
   fi
 
-  remvs=$( sqlite3 $SQLFile "SELECT type, file FROM tdir
-                                   WHERE file IN (SELECT file FROM remv)
-                                      OR file IN (SELECT file FROM typechg)
-                                   ORDER BY file;" \
-           | pack_into_one_directory \
-           | sed "s/'/'\\\\''/g ;
-                  s/^/'/ ;
-                  s/$/'/" )
-  if [ ${#remvs} != 0 ] ; then
-    echo rm -r $VerbsOptn $remvs '|| exit $?' \
-      | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
-      | bash || exit $?
-  fi
+  remove_old_files
 
   if $There_Are_Files_To_Move ; then
       eval mkdir -p $VerbsOptn $(
