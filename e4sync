@@ -319,6 +319,25 @@ function store_files_to_be_moved() {
      | bash || exit $?
 }
 
+function restore_moved_files_to_new_location() {
+  local moveProtctDir="$1"
+
+  eval mkdir -p $VerbsOptn $(
+   sqlite3 $SQLFile "SELECT to_loc FROM move_files;" \
+    | sed "s/'/'\\\\''/g ;
+           s|/[^/]*$|| ;
+           s/^/ '/ ; s/$/'/ ;
+           s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+  ) || exit $?
+
+  sqlite3 $SQLFile "SELECT to_loc FROM move_files;" \
+   | sed "s/'/'\\\\''/g ;
+          s|^\(.*\)$|mv $VerbsOptn '$moveProtctDir/\1' '\1'| ;
+          s/$/ || exit \$?/ ;
+          s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+   | bash || exit $?
+}
+
 function remove_old_files() {
   local remvs
 
@@ -336,6 +355,7 @@ function remove_old_files() {
       | bash || exit $?
   fi
 }
+
 
 
 
@@ -469,20 +489,7 @@ function synchronize(){
   remove_old_files
 
   if $There_Are_Files_To_Move ; then
-      eval mkdir -p $VerbsOptn $(
-       sqlite3 $SQLFile "SELECT to_loc FROM move_files;" \
-       | sed "s/'/'\\\\''/g ;
-              s|/[^/]*$|| ;
-              s/^/ '/ ; s/$/'/ ;
-              s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
-      ) || exit $?
-
-      sqlite3 $SQLFile "SELECT to_loc FROM move_files;" \
-      | sed "s/'/'\\\\''/g ;
-             s|^\(.*\)$|mv $VerbsOptn '$moveProtctDir/\1' '\1'| ;
-             s/$/ || exit \$?/ ;
-             s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
-      | bash || exit $?
+    restore_moved_files_to_new_location $moveProtctDir
   fi
 
   sqlite3 $SQLFile "SELECT type, file FROM fdir
