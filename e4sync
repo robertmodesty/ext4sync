@@ -356,6 +356,32 @@ function remove_old_files() {
   fi
 }
 
+function copy_new_files() {
+
+  sqlite3 $SQLFile "
+    SELECT type, file FROM fdir
+      WHERE file IN (SELECT file FROM new)
+         OR file IN (SELECT file FROM typechg
+                       WHERE file NOT IN (SELECT to_loc FROM move_files)
+                    )
+         ORDER BY file;" \
+   | pack_into_one_directory \
+   | sed "s/'/'\\\\''/g ;
+          s|\(.*\)|cp -a $VerbsOptn '$FromDir/\1' '\1'| ;
+          s/$/ || exit \$?/ ;
+          s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+   | bash || exit $?
+
+  sqlite3 $SQLFile "SELECT file FROM chg
+                          WHERE type = 'f'
+                          ORDER BY file;" \
+    | sed "s/'/'\\\\''/g ;
+           s|\(.*\)|cp -af $VerbsOptn '$FromDir/\1' '\1'| ;
+           s/$/ || exit \$?/ ;
+           s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+    | bash || exit $?
+}
+
 
 
 
@@ -492,29 +518,7 @@ function synchronize(){
     restore_moved_files_to_new_location $moveProtctDir
   fi
 
-  sqlite3 $SQLFile "SELECT type, file FROM fdir
-                          WHERE file IN (SELECT file FROM new)
-                             OR file IN (SELECT file FROM typechg
-                                           WHERE file NOT IN (
-                                              SELECT to_loc FROM move_files
-                                             )
-                                        )
-                          ORDER BY file;" \
-    | pack_into_one_directory \
-    | sed "s/'/'\\\\''/g ;
-           s|\(.*\)|cp -a $VerbsOptn '$FromDir/\1' '\1'| ;
-           s/$/ || exit \$?/ ;
-           s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
-    | bash || exit $?
-
-  sqlite3 $SQLFile "SELECT file FROM chg
-                          WHERE type = 'f'
-                          ORDER BY file;" \
-    | sed "s/'/'\\\\''/g ;
-           s|\(.*\)|cp -af $VerbsOptn '$FromDir/\1' '\1'| ;
-           s/$/ || exit \$?/ ;
-           s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
-    | bash || exit $?
+  copy_new_files
 
   sqlite3 $SQLFile "SELECT time, file FROM fdir
                           WHERE type = 'd'
