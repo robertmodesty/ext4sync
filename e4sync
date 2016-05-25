@@ -382,6 +382,19 @@ function copy_new_files() {
     | bash || exit $?
 }
 
+function reset_directory_time() {
+
+  sqlite3 $SQLFile "SELECT time, file FROM fdir
+                      WHERE type = 'd'
+                      ORDER BY file
+                      DESC;" \
+   | sed "s/'/'\\\\''/g ;
+          s/^\([^|]*\)|\(.*\)/touch -d '\1' '\2'/ ;
+          s/$/ || exit \$?/ ;
+          s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+   | bash || exit $?
+}
+
 
 
 
@@ -520,15 +533,7 @@ function synchronize(){
 
   copy_new_files
 
-  sqlite3 $SQLFile "SELECT time, file FROM fdir
-                          WHERE type = 'd'
-                          ORDER BY file
-                          DESC;" \
-    | sed "s/'/'\\\\''/g ;
-           s/^\([^|]*\)|\(.*\)/touch -d '\1' '\2'/ ;
-           s/$/ || exit \$?/ ;
-           s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
-    | bash || exit $?
+  reset_directory_time
 
   if $There_Are_Files_To_Move ; then
     rm -rf $moveProtctDir
