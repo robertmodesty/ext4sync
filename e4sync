@@ -258,16 +258,14 @@ function create_hierarchy_tables_of_moved_files() {
 }
 
 function update_the_tables_with_moved_files() {
-  local filesMovedFrom filesMovedTo
+  local filesMovedTo
 
-  filesMovedFrom="$(sqlite3 $SQLFile 'SELECT from_loc FROM move_files;')"
+  sqlite3 $SQLFile <<- EOF
 
-  ( echo "begin;"
-    echo "$filesMovedFrom" \
-      | sed "s/'/''/g ;
-             s/^/DELETE FROM remv WHERE file = '/ ; s/$/';/"
-    echo "commit;"
-  ) | sqlite3 $SQLFile
+	DELETE FROM remv
+	  WHERE file IN (SELECT from_loc FROM move_files);
+
+	EOF
 
   filesMovedTo="$(sqlite3 $SQLFile 'SELECT to_loc FROM move_files;')"
 
@@ -279,12 +277,12 @@ function update_the_tables_with_moved_files() {
     echo "commit;"
   ) | sqlite3 $SQLFile
 
-  ( echo "begin;"
-    echo "$filesMovedTo" \
-      | sed "s/'/''/g ;
-             s/^/DELETE FROM chg WHERE file = '/ ; s/$/';/"
-    echo "commit;"
-  ) | sqlite3 $SQLFile
+  sqlite3 $SQLFile <<- EOF
+
+	DELETE FROM chg
+	  WHERE file IN (SELECT to_loc FROM move_files);
+
+	EOF
 }
 
 
