@@ -87,7 +87,6 @@ function all_hierarchy_of_the_files() {
 
   while read nameWithPath ; do
 
-    echo "$nameWithPath"
     directory="${nameWithPath%/*}"
     test "$nameWithPath" == "$directory" && continue
 
@@ -271,6 +270,8 @@ function update_the_tables_with_moved_files() {
 
 	DELETE FROM new
 	  WHERE file IN (SELECT file FROM move_to_and_all_hierarchy);
+	DELETE FROM new
+	  WHERE file IN (SELECT to_loc FROM move_files);
 
 	EOF
 
