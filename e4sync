@@ -82,7 +82,7 @@ function full_path() {
   fi
 }
 
-function all_hierarchy_of_the_files() {
+function all_directory_above_the_files() {
   local nameWithPath directory
 
   while read nameWithPath ; do
@@ -239,7 +239,7 @@ function create_hierarchy_tables_of_moved_files() {
     echo "begin;"
     echo "$filesMovedFrom" \
       | sed "s/'/''/g" \
-      | all_hierarchy_of_the_files \
+      | all_directory_above_the_files \
       | sed "s/^/INSERT INTO move_from_and_all_hierarchy VALUES('/ ; s/$/');/"
     echo "commit;"
   ) | sqlite3 $SQLFile
@@ -250,7 +250,7 @@ function create_hierarchy_tables_of_moved_files() {
     echo "begin;"
     echo "$filesMovedTo" \
       | sed "s/'/''/g" \
-      | all_hierarchy_of_the_files \
+      | all_directory_above_the_files \
       | sed "s/^/INSERT INTO move_to_and_all_hierarchy VALUES('/ ; s/$/');/"
     echo "commit;"
   ) | sqlite3 $SQLFile
