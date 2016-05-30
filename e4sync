@@ -246,12 +246,12 @@ function create_hierarchy_tables_of_moved_files() {
 
   filesMovedTo="$(sqlite3 $SQLFile "SELECT to_loc FROM move_files;")"
 
-  ( echo "CREATE TABLE move_to_and_all_hierarchy(file);"
+  ( echo "CREATE TABLE all_directory_above_move_to(file);"
     echo "begin;"
     echo "$filesMovedTo" \
       | sed "s/'/''/g" \
       | all_directory_above_the_files \
-      | sed "s/^/INSERT INTO move_to_and_all_hierarchy VALUES('/ ; s/$/');/"
+      | sed "s/^/INSERT INTO all_directory_above_move_to VALUES('/ ; s/$/');/"
     echo "commit;"
   ) | sqlite3 $SQLFile
 }
@@ -269,7 +269,7 @@ function update_the_tables_with_moved_files() {
   sqlite3 $SQLFile <<- EOF
 
 	DELETE FROM new
-	  WHERE file IN (SELECT file FROM move_to_and_all_hierarchy);
+	  WHERE file IN (SELECT file FROM all_directory_above_move_to);
 	DELETE FROM new
 	  WHERE file IN (SELECT to_loc FROM move_files);
 
