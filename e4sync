@@ -235,12 +235,12 @@ function create_hierarchy_tables_of_moved_files() {
 
   filesMovedFrom="$(sqlite3 $SQLFile 'SELECT from_loc FROM move_files;')"
 
-  ( echo "CREATE TABLE move_from_and_all_hierarchy(file);"
+  ( echo "CREATE TABLE all_directory_above_move_from(file);"
     echo "begin;"
     echo "$filesMovedFrom" \
       | sed "s/'/''/g" \
       | all_directory_above_the_files \
-      | sed "s/^/INSERT INTO move_from_and_all_hierarchy VALUES('/ ; s/$/');/"
+      | sed "s/^/INSERT INTO all_directory_above_move_from VALUES('/ ; s/$/');/"
     echo "commit;"
   ) | sqlite3 $SQLFile
 
