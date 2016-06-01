@@ -263,19 +263,10 @@ function update_the_tables_with_moved_files() {
 	DELETE FROM remv
 	  WHERE file IN (SELECT from_loc FROM move_files);
 
-	EOF
-
-
-  sqlite3 $SQLFile <<- EOF
-
 	DELETE FROM new
 	  WHERE file IN (SELECT file FROM all_directory_above_move_to);
 	DELETE FROM new
 	  WHERE file IN (SELECT to_loc FROM move_files);
-
-	EOF
-
-  sqlite3 $SQLFile <<- EOF
 
 	DELETE FROM chg
 	  WHERE file IN (SELECT to_loc FROM move_files);
