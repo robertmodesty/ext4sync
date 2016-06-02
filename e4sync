@@ -328,10 +328,14 @@ function restore_moved_files_to_new_location() {
 function remove_old_files() {
   local remvs
 
-  remvs=$( sqlite3 $SQLFile "SELECT type, file FROM tdir
-                                   WHERE file IN (SELECT file FROM remv)
-                                      OR file IN (SELECT file FROM typechg)
-                                   ORDER BY file;" \
+  remvs=$( sqlite3 $SQLFile "
+             SELECT type, file FROM tdir
+               WHERE file IN (SELECT file FROM remv)
+                  OR file IN (SELECT file FROM typechg
+                                WHERE file NOT IN
+                                      (SELECT from_loc FROM move_files)
+                             )
+               ORDER BY file;" \
            | pack_into_one_directory \
            | sed "s/'/'\\\\''/g ;
                   s/^/'/ ;
