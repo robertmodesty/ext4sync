@@ -26,8 +26,6 @@ readonly ThisProgram="$0"
 
 #   setup in function compare_directorys():
 #       readonly There_Are_Files_To_Move
-#       readonly RemoveOld
-#       readonly CopyNew
 
 
 
@@ -472,7 +470,6 @@ function scan_directory() {
 
 
 function compare_directorys() {
-  local checkStr
 
   create_the_difference_tables
 
@@ -493,16 +490,6 @@ function compare_directorys() {
     update_the_tables_with_moved_files
 
   fi
-
-  checkStr="$(sqlite3 $SQLFile '
-                 SELECT * FROM remv LIMIT 1;
-                 SELECT * FROM typechg LIMIT 1;')"
-  test -z "$checkStr" && readonly RemoveOld="off" || readonly RemoveOld="on"
-
-  checkStr="$(sqlite3 $SQLFile '
-                 SELECT * FROM new LIMIT 1;
-                 SELECT * FROM typechg LIMIT 1;')"
-  test -z "$checkStr" && readonly CopyNew="off" || readonly CopyNew="on"
 }
 
 
