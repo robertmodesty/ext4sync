@@ -304,6 +304,24 @@ function store_files_to_be_moved() {
      | bash || exit $?
 }
 
+function set_attr_of_dirs_above_moved_files() {
+  local shellCommands
+
+  if $is_Root ; then
+    shellCommands="chown \1:\2 '\4' || exit \$? ; chmod \3 '\4' || exit \$?"
+  else
+    shellCommands="chmod \3 '\4' || exit \$?"
+  fi
+
+  sqlite3 $SQLFile "
+   SELECT uID, gID, permin, file FROM fdir
+     WHERE file IN (SELECT * FROM all_directory_above_move_to);" \
+   | sed "s/'/'\\\\''/g ;
+          s/^\([^|]*\)|\([^|]*\)|\([^|]*\)|\(.*\)/$shellCommands/ ;
+          s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+   | bash || exit $?
+}
+
 function restore_moved_files_to_new_location() {
   local moveProtctDir="$1"
 
@@ -314,6 +332,8 @@ function restore_moved_files_to_new_location() {
            s/^/ '/ ; s/$/'/ ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
   ) || exit $?
+
+  set_attr_of_dirs_above_moved_files
 
   sqlite3 $SQLFile "SELECT to_loc FROM move_files;" \
    | sed "s/'/'\\\\''/g ;
