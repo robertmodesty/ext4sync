@@ -12,6 +12,10 @@
 ###### Settings ######
 
 readonly UserID=$( id -u )
+test "$UserID" == "0" \
+  && readonly is_Root=true \
+  || readonly is_Root=false
+
 readonly ThisProgram="$0"
 
 #   setup in function get_both_directory_names():
@@ -22,7 +26,6 @@ readonly ThisProgram="$0"
 #       readonly Arg_Sets_Move_Files
 #       readonly VerbsOptn
 #       readonly SQLFile
-#       readonly is_Root
 
 #   setup in function compare_directorys():
 #       readonly There_Are_Files_To_Move
@@ -161,15 +164,6 @@ function get_both_directory_names() {
 
   readonly FromDir="$( full_path "$fDir" )"
   readonly ToDir="$( full_path "$tDir" )"
-}
-
-function test_if_it_is_root() {
-
-  if [ "$UserID" == "0" ]; then
-    echo true
-  else
-    echo false
-  fi
 }
 
 
@@ -458,8 +452,6 @@ function process_env_and_args() {
   readonly VerbsOptn
 
   readonly SQLFile=$(mktemp --suffix=.db)
-
-  readonly is_Root=$(test_if_it_is_root)
 }
 
 
