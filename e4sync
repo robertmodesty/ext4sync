@@ -473,7 +473,7 @@ function scan_directory() {
    echo "BEGIN;"
    find -printf "$Find2SQLstr" \
      | tail -n +2 \
-     | sed "s/+/ /; s/'/''/g" \
+     | sed 's/+/ /; s/\\/--BackslashProtect-96H=UOW8WBQ--/g;'" s/'/''/g" \
      | new_line_protect \
      | sed "$Hash2quote"
    echo "COMMIT;") | sqlite3 $SQLFile
