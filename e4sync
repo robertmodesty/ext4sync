@@ -198,7 +198,10 @@ function create_the_difference_tables() {
 
 function create_the_move_files_table() {
 
-  sqlite3 $SQLFile <<- EOF
+  if ! $Arg_Sets_Move_Files ; then
+    sqlite3 $SQLFile 'CREATE TABLE move_files(from_loc, to_loc);'
+  else
+    sqlite3 $SQLFile <<- EOF
 	CREATE TEMP TABLE all_old AS SELECT * FROM remv;
 	INSERT INTO all_old SELECT * FROM tdir
 	  WHERE file IN (SELECT file FROM chg);
@@ -219,6 +222,7 @@ function create_the_move_files_table() {
 	      AND all_old.subsecond != '0000000000'
 	      AND all_old.type = "f";
 	EOF
+  fi
 }
 
 
@@ -486,13 +490,9 @@ function compare_directorys() {
   create_the_difference_tables
 
   There_Are_Files_To_Move="false"
-  if $Arg_Sets_Move_Files ; then
-    create_the_move_files_table
-    checkStr="$(sqlite3 $SQLFile 'SELECT * FROM move_files LIMIT 1;')"
-    test -n "$checkStr" && There_Are_Files_To_Move="true"
-  else
-    sqlite3 $SQLFile 'CREATE TABLE move_files(from_loc, to_loc);'
-  fi
+  create_the_move_files_table
+  checkStr="$(sqlite3 $SQLFile 'SELECT * FROM move_files LIMIT 1;')"
+  test -n "$checkStr" && There_Are_Files_To_Move="true"
   readonly There_Are_Files_To_Move
 
   if $There_Are_Files_To_Move ; then
