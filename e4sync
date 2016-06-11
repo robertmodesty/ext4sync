@@ -359,7 +359,8 @@ function remove_old_files() {
                   s/$/'/" )
   if [ ${#remvs} != 0 ] ; then
     echo rm -r $VerbsOptn $remvs '|| exit $?' \
-      | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+      | sed "s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
+             s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
       | bash || exit $?
   fi
 }
