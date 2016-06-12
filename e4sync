@@ -378,6 +378,7 @@ function copy_new_files() {
    | sed "s/'/'\\\\''/g ;
           s|\(.*\)|cp -a $VerbsOptn '$FromDir/\1' '\1'| ;
           s/$/ || exit \$?/ ;
+          s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
           s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
    | bash || exit $?
 
@@ -387,6 +388,7 @@ function copy_new_files() {
     | sed "s/'/'\\\\''/g ;
            s|\(.*\)|cp -af $VerbsOptn '$FromDir/\1' '\1'| ;
            s/$/ || exit \$?/ ;
+           s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     | bash || exit $?
 }
