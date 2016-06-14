@@ -285,6 +285,7 @@ function store_files_to_be_moved() {
       | sed "s/'/'\\\\''/g ;
              s|/[^/]*$|| ;
              s|^| '$moveProtctDir/| ; s/$/'/ ;
+             s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
              s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     ) || exit $?
 
@@ -298,6 +299,7 @@ function store_files_to_be_moved() {
             s/ --TailProtect-96H=UOW8WBQ--|/ --TailProtect-96H=UOW8WBQ--/ ;
             s| --TailProtect-96H=UOW8WBQ--|' '$moveProtctDir/| ;
             s/$/' || exit \$?/ ;
+            s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
             s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
      | bash || exit $?
 }
@@ -316,6 +318,7 @@ function set_attr_of_dirs_above_moved_files() {
      WHERE file IN (SELECT * FROM all_directory_above_move_to);" \
    | sed "s/'/'\\\\''/g ;
           s/^\([^|]*\)|\([^|]*\)|\([^|]*\)|\(.*\)/$shellCommands/ ;
+          s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
           s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
    | bash || exit $?
 }
@@ -328,6 +331,7 @@ function restore_moved_files_to_new_location() {
     | sed "s/'/'\\\\''/g ;
            s|/[^/]*$|| ;
            s/^/ '/ ; s/$/'/ ;
+           s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
   ) || exit $?
 
@@ -337,6 +341,7 @@ function restore_moved_files_to_new_location() {
    | sed "s/'/'\\\\''/g ;
           s|^\(.*\)$|mv $VerbsOptn '$moveProtctDir/\1' '\1'| ;
           s/$/ || exit \$?/ ;
+          s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
           s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
    | bash || exit $?
 }
@@ -358,7 +363,8 @@ function remove_old_files() {
                   s/$/'/" )
   if [ ${#remvs} != 0 ] ; then
     echo rm -r $VerbsOptn $remvs '|| exit $?' \
-      | sed "s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+      | sed "s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
+             s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
       | bash || exit $?
   fi
 }
@@ -376,6 +382,7 @@ function copy_new_files() {
    | sed "s/'/'\\\\''/g ;
           s|\(.*\)|cp -a $VerbsOptn '$FromDir/\1' '\1'| ;
           s/$/ || exit \$?/ ;
+          s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
           s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
    | bash || exit $?
 
@@ -385,6 +392,7 @@ function copy_new_files() {
     | sed "s/'/'\\\\''/g ;
            s|\(.*\)|cp -af $VerbsOptn '$FromDir/\1' '\1'| ;
            s/$/ || exit \$?/ ;
+           s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     | bash || exit $?
 }
@@ -398,6 +406,7 @@ function reset_directory_time() {
    | sed "s/'/'\\\\''/g ;
           s/^\([^|]*\)|\(.*\)/touch -d '\1' '\2'/ ;
           s/$/ || exit \$?/ ;
+          s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
           s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
    | bash || exit $?
 }
@@ -477,7 +486,7 @@ function scan_directory() {
    echo "BEGIN;"
    find -printf "$Find2SQLstr" \
      | tail -n +2 \
-     | sed "s/+/ /; s/'/''/g" \
+     | sed 's/+/ /; s/\\/--BackslashProtect-96H=UOW8WBQ--/g;'" s/'/''/g" \
      | new_line_protect \
      | sed "$Hash2quote"
    echo "COMMIT;") | sqlite3 $SQLFile
