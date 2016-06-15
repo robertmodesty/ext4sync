@@ -514,6 +514,16 @@ function compare_directorys() {
 }
 
 
+function if_permission_could_denied() {
+
+  if is_Root ; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+
 function synchronize(){
   local moveProtctDir
 
