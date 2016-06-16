@@ -202,13 +202,13 @@ function create_the_move_files_table() {
     sqlite3 $SQLFile 'CREATE TABLE move_files(from_loc, to_loc);'
   else
     sqlite3 $SQLFile <<- EOF
-	CREATE TEMP TABLE all_old AS SELECT * FROM remv;
+	CREATE TABLE all_old AS SELECT * FROM remv;
 	INSERT INTO all_old SELECT * FROM tdir
 	  WHERE file IN (SELECT file FROM chg);
 	INSERT INTO all_old SELECT * FROM tdir
 	  WHERE file IN (SELECT file FROM typechg);
 
-	CREATE TEMP TABLE all_new AS SELECT * FROM new;
+	CREATE TABLE all_new AS SELECT * FROM new;
 	INSERT INTO all_new SELECT * FROM chg;
 	INSERT INTO all_new SELECT * FROM typechg;
 
