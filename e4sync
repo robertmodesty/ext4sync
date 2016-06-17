@@ -193,6 +193,18 @@ function create_the_difference_tables() {
 	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
 	    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size)
 	          AND NOT fdir.type = tdir.type;
+
+	CREATE TABLE all_old AS
+	    SELECT * FROM remv;
+	INSERT INTO all_old SELECT * FROM tdir
+	    WHERE file IN (SELECT file FROM chg);
+	INSERT INTO all_old SELECT * FROM tdir
+	    WHERE file IN (SELECT file FROM typechg);
+
+	CREATE TABLE all_new AS SELECT * FROM new;
+	INSERT INTO all_new SELECT * FROM chg;
+	INSERT INTO all_new SELECT * FROM typechg;
+
 	EOF
 }
 
@@ -202,16 +214,6 @@ function create_the_move_files_table() {
     sqlite3 $SQLFile 'CREATE TABLE move_files(from_loc, to_loc);'
   else
     sqlite3 $SQLFile <<- EOF
-	CREATE TABLE all_old AS SELECT * FROM remv;
-	INSERT INTO all_old SELECT * FROM tdir
-	  WHERE file IN (SELECT file FROM chg);
-	INSERT INTO all_old SELECT * FROM tdir
-	  WHERE file IN (SELECT file FROM typechg);
-
-	CREATE TABLE all_new AS SELECT * FROM new;
-	INSERT INTO all_new SELECT * FROM chg;
-	INSERT INTO all_new SELECT * FROM typechg;
-
 	CREATE TABLE move_files
 	        AS SELECT all_old.file AS from_loc, all_new.file AS to_loc
 	    FROM all_old INNER JOIN all_new
