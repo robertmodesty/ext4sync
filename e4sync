@@ -279,9 +279,32 @@ function update_the_tables_with_moved_files() {
 ####################
 # Functions Checking Permissions
 ########################################################################
-function all_permission_allowed() {
+function files_been_denied_when_sync() {
 
+  sqlite3 $SQLFile "CREATE TABLE user(uID);
+                    INSERT INTO user VALUES($UserID);"
+
+  sqlite3 $SQLFile <<- EOF
+
+	SELECT file FROM all_new
+	    WHERE uID != (SELECT uID FROM user);
+
+	DROP TABLE user;
+
+	EOF
+}
+
+
+function all_permission_allowed() {
+  local filesCantUpdate
+
+  filesCantUpdate="$( files_been_denied_when_sync )"
+
+  if [ -z "$filesCantUpdate" ] ; then
     return 0
+  else
+    return 1
+  fi
 }
 
 
