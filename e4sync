@@ -293,6 +293,14 @@ function files_been_denied_when_sync() {
 	    WHERE uID != (SELECT uID FROM user)
 	      AND file IN (SELETC filepath FROM all_new);
 
+	SELECT file FROM all_old
+	    WHERE uID != (SELECT uID FROM user);
+	      AND file IN (SELECT from_loc FROM move_files);
+
+	SELECT file FROM tdir
+	    WHERE uID != (SELECT uID FROM user)
+	      AND file IN (SELETC filepath FROM all_old);
+
 	DROP TABLE user;
 
 	EOF
