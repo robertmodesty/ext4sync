@@ -287,7 +287,11 @@ function files_been_denied_when_sync() {
   sqlite3 $SQLFile <<- EOF
 
 	SELECT file FROM all_new
-	    WHERE uID != (SELECT uID FROM user);
+	    WHERE uID != (SELECT uID FROM user)
+	      AND (   permin LIKE '7%'
+	           OR permin LIKE '6%'
+	           OR permin LIKE '5%'
+	           OR permin LIKE '4%');
 
 	SELECT file FROM tdir
 	    WHERE uID != (SELECT uID FROM user)
