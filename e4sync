@@ -308,6 +308,10 @@ function files_been_denied_when_sync() {
 	SELECT file FROM tdir
 	    WHERE uID != (SELECT uID FROM user)
 	      AND file IN (SELETC filepath FROM all_old);
+	      AND (   permin LIKE '7%'
+	           OR permin LIKE '6%'
+	           OR permin LIKE '3%'
+	           OR permin LIKE '2%');
 
 	DROP TABLE user;
 
