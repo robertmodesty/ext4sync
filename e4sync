@@ -576,7 +576,7 @@ function compare_directorys() {
 }
 
 
-function if_permission_could_denied() {
+function permission_could_deny() {
 
   if $is_Root || all_permission_allowed ; then
     return 1
