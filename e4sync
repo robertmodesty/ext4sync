@@ -319,7 +319,7 @@ function files_been_denied_when_sync() {
 }
 
 
-function all_permission_allowed() {
+function all_permission_allow() {
   local filesCantUpdate
 
   filesCantUpdate="$( files_been_denied_when_sync )"
@@ -578,7 +578,7 @@ function compare_directorys() {
 
 function permission_could_deny() {
 
-  if $is_Root || all_permission_allowed ; then
+  if $is_Root || all_permission_allow ; then
     return 1
   else
     return 0
