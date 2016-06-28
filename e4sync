@@ -288,18 +288,18 @@ function files_been_denied_when_sync() {
 
 	SELECT file FROM all_new
 	    WHERE uID != (SELECT uID FROM user)
-	      AND (   permin LIKE '7%'
-	           OR permin LIKE '6%'
-	           OR permin LIKE '5%'
-	           OR permin LIKE '4%');
+	       OR permin LIKE '3%'
+	       OR permin LIKE '2%'
+	       OR permin LIKE '1%'
+	       OR permin LIKE '0%';
 
 	SELECT file FROM tdir
-	    WHERE uID != (SELECT uID FROM user)
-	      AND file IN (SELECT filepath FROM all_new)
-	      AND (   permin LIKE '7%'
-	           OR permin LIKE '6%'
-	           OR permin LIKE '3%'
-	           OR permin LIKE '2%');
+	    WHERE (   uID != (SELECT uID FROM user)
+	           OR permin LIKE '5%'
+	           OR permin LIKE '4%'
+	           OR permin LIKE '1%'
+	           OR permin LIKE '0%')
+	      AND file IN (SELECT filepath FROM all_new);
 
 	SELECT file FROM all_old
 	    WHERE uID != (SELECT uID FROM user)
