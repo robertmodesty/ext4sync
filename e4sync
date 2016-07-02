@@ -287,11 +287,12 @@ function files_been_denied_when_sync() {
   sqlite3 $SQLFile <<- EOF
 
 	SELECT file FROM all_new
-	    WHERE uID != (SELECT uID FROM user)
-	       OR permin LIKE '3%'
-	       OR permin LIKE '2%'
-	       OR permin LIKE '1%'
-	       OR permin LIKE '0%'
+	    WHERE file NOT IN (SELECT to_loc FROM move_files)
+	      AND (   uID != (SELECT uID FROM user)
+	           OR permin LIKE '3%'
+	           OR permin LIKE '2%'
+	           OR permin LIKE '1%'
+	           OR permin LIKE '0%')
 	    LIMIT 1;
 
 	SELECT file FROM tdir
