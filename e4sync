@@ -641,6 +641,11 @@ function main() {
   echo "3.  Comparing two directorys..."
   compare_directorys
 
+  if permission_could_deny ; then
+    echo 'Permission could deny, are you root?'
+    exit 1
+  fi
+
   echo "4.  Synchronizing to '$ToDir'"
   synchronize
 
