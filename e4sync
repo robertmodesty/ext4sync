@@ -193,6 +193,18 @@ function create_the_difference_tables() {
 	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
 	    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size)
 	          AND NOT fdir.type = tdir.type;
+
+	CREATE TABLE all_old AS
+	    SELECT * FROM remv;
+	INSERT INTO all_old SELECT * FROM tdir
+	    WHERE file IN (SELECT file FROM chg);
+	INSERT INTO all_old SELECT * FROM tdir
+	    WHERE file IN (SELECT file FROM typechg);
+
+	CREATE TABLE all_new AS SELECT * FROM new;
+	INSERT INTO all_new SELECT * FROM chg;
+	INSERT INTO all_new SELECT * FROM typechg;
+
 	EOF
 }
 
@@ -202,16 +214,6 @@ function create_the_move_files_table() {
     sqlite3 $SQLFile 'CREATE TABLE move_files(from_loc, to_loc);'
   else
     sqlite3 $SQLFile <<- EOF
-	CREATE TEMP TABLE all_old AS SELECT * FROM remv;
-	INSERT INTO all_old SELECT * FROM tdir
-	  WHERE file IN (SELECT file FROM chg);
-	INSERT INTO all_old SELECT * FROM tdir
-	  WHERE file IN (SELECT file FROM typechg);
-
-	CREATE TEMP TABLE all_new AS SELECT * FROM new;
-	INSERT INTO all_new SELECT * FROM chg;
-	INSERT INTO all_new SELECT * FROM typechg;
-
 	CREATE TABLE move_files
 	        AS SELECT all_old.file AS from_loc, all_new.file AS to_loc
 	    FROM all_old INNER JOIN all_new
@@ -269,6 +271,71 @@ function update_the_tables_with_moved_files() {
 
 	EOF
 }
+
+
+
+
+
+####################
+# Functions Checking Permissions
+########################################################################
+function files_been_denied_when_sync() {
+
+  sqlite3 $SQLFile "CREATE TABLE user(uID);
+                    INSERT INTO user VALUES($UserID);"
+
+  sqlite3 $SQLFile <<- EOF
+
+	SELECT file FROM all_new
+	    WHERE file NOT IN (SELECT to_loc FROM move_files)
+	      AND (   uID != (SELECT uID FROM user)
+	           OR permin LIKE '3%'
+	           OR permin LIKE '2%'
+	           OR permin LIKE '1%'
+	           OR permin LIKE '0%')
+	    LIMIT 1;
+
+	SELECT file FROM tdir
+	    WHERE (   uID != (SELECT uID FROM user)
+	           OR permin LIKE '5%'
+	           OR permin LIKE '4%'
+	           OR permin LIKE '1%'
+	           OR permin LIKE '0%')
+	      AND file IN (SELECT filepath FROM all_new)
+	    LIMIT 1;
+
+	SELECT file FROM all_old
+	    WHERE uID != (SELECT uID FROM user)
+	      AND file IN (SELECT from_loc FROM move_files)
+	    LIMIT 1;
+
+	SELECT file FROM tdir
+	    WHERE (   uID != (SELECT uID FROM user)
+	           OR permin LIKE '5%'
+	           OR permin LIKE '4%'
+	           OR permin LIKE '1%'
+	           OR permin LIKE '0%')
+	      AND file IN (SELECT filepath FROM all_old)
+	    LIMIT 1;
+
+	DROP TABLE user;
+
+	EOF
+}
+
+
+function all_permission_allow() {
+  local filesCantUpdate
+
+  filesCantUpdate="$( files_been_denied_when_sync )"
+
+  if [ -z "$filesCantUpdate" ] ; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 
 
 
@@ -514,6 +581,16 @@ function compare_directorys() {
 }
 
 
+function permission_could_deny() {
+
+  if $is_Root || all_permission_allow ; then
+    return 1
+  else
+    return 0
+  fi
+}
+
+
 function synchronize(){
   local moveProtctDir
 
@@ -563,6 +640,11 @@ function main() {
 
   echo "3.  Comparing two directorys..."
   compare_directorys
+
+  if permission_could_deny ; then
+    echo 'Permission could deny, are you root?'
+    exit 1
+  fi
 
   echo "4.  Synchronizing to '$ToDir'"
   synchronize
