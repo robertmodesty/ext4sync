@@ -643,6 +643,7 @@ function main() {
 
   if permission_could_deny ; then
     echo 'Permission could deny, are you root?'
+    rm $SQLFile
     exit 1
   fi
 
