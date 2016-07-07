@@ -194,6 +194,11 @@ function create_the_difference_tables() {
 	    WHERE NOT (fdir.uID = tdir.uID AND fdir.gID = tdir.gID)
 	          AND fdir.type = tdir.type;
 
+	CREATE TABLE permin_chg AS SELECT fdir.*
+	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
+	    WHERE NOT fdir.permin = tdir.permin
+	          AND fdir.type = tdir.type;
+
 	CREATE TABLE typechg AS SELECT fdir.*
 	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
 	    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size)
