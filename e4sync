@@ -474,6 +474,20 @@ function copy_new_files() {
     | bash || exit $?
 }
 
+function setup_changed_permission() {
+
+
+  sqlite3 $SQLFile "SELECT permin, file FROM permin_chg
+                      ORDER BY file
+                      DESC;" \
+   | sed "s/'/'\\\\''/g ;
+          s/^\([^|]*\)|\(.*\)/chmod \1 '\2'/ ;
+          s/$/ || exit \$?/ ;
+          s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
+          s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+   | bash || exit $?
+}
+
 function reset_directory_time() {
 
   sqlite3 $SQLFile "SELECT time, file FROM fdir
