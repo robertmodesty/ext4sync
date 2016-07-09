@@ -474,6 +474,20 @@ function copy_new_files() {
     | bash || exit $?
 }
 
+function setup_changed_ownership() {
+
+
+  sqlite3 $SQLFile "SELECT uID, gID, file FROM ownership_chg
+                      ORDER BY file
+                      DESC;" \
+   | sed "s/'/'\\\\''/g ;
+          s/^\([^|]*\)|\([^|]*\)|\(.*\)/chown \1:\2 '\3'/ ;
+          s/$/ || exit \$?/ ;
+          s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
+          s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+   | bash || exit $?
+}
+
 function setup_changed_permission() {
 
 
