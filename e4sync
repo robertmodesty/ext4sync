@@ -300,6 +300,24 @@ function update_the_tables_with_moved_files() {
 	                           OR NOT NewgID = OldgID)
 	          AND file NOT IN (SELECT file FROM ownership_chg);
 
+	CREATE TEMP TABLE mov_permin_tmp0
+	  AS SELECT move_files.from_loc, move_files.to_loc,
+	            fdir.permin AS newPermin
+               FROM move_files INNER JOIN fdir
+	         ON move_files.to_loc = fdir.file;
+	CREATE TEMP TABLE mov_permin_tmp1
+	  AS SELECT mov_permin_tmp0.*, tdir.permin AS oldPermin
+               FROM mov_permin_tmp0 INNER JOIN tdir
+	         ON mov_permin_tmp0.from_loc = tdir.file;
+	DELETE FROM permin_chg
+	  WHERE file IN (SELECT to_loc FROM mov_permin_tmp1
+	                  WHERE newPermin = oldPermin);
+	INSERT INTO permin_chg
+	       SELECT * FROM fdir
+	        WHERE file IN (SELECT to_loc FROM mov_permin_tmp1
+	                        WHERE NOT newPermin = oldPermin)
+	          AND file NOT IN (SELECT file FROM permin_chg);
+
 	EOF
 }
 
