@@ -279,42 +279,37 @@ function update_the_tables_with_moved_files() {
 	DELETE FROM chg
 	  WHERE file IN (SELECT to_loc FROM move_files);
 
-	CREATE TEMP TABLE mov_ownership_tmp0
-	  AS SELECT move_files.from_loc, move_files.to_loc,
-	            fdir.uID AS NewuID, fdir.gID AS NewgID
-               FROM move_files INNER JOIN fdir
-	         ON move_files.to_loc = fdir.file;
-	CREATE TEMP TABLE mov_ownership_tmp1
-	  AS SELECT mov_ownership_tmp0.*,
-	            tdir.uID AS OlduID, tdir.gID AS OldgID
-               FROM mov_ownership_tmp0 INNER JOIN tdir
-	         ON mov_ownership_tmp0.from_loc = tdir.file;
+	CREATE TEMP TABLE mov_owner_permin_tmp0
+	  AS SELECT move_files.from_loc,
+	            tdir.uID AS OlduID, tdir.gID AS OldgID,
+	            tdir.permin AS oldPermin,
+	            move_files.to_loc
+               FROM move_files INNER JOIN tdir
+	         ON move_files.from_loc = tdir.file;
+	CREATE TEMP TABLE mov_owner_permin_tmp1
+	  AS SELECT mov_owner_permin_tmp0.*,
+	            fdir.uID AS NewuID, fdir.gID AS NewgID,
+	            fdir.permin AS newPermin
+               FROM mov_owner_permin_tmp0 INNER JOIN fdir
+	         ON mov_owner_permin_tmp0.to_loc = fdir.file;
+
 	DELETE FROM ownership_chg
-	  WHERE file IN (SELECT to_loc FROM mov_ownership_tmp1
+	  WHERE file IN (SELECT to_loc FROM mov_owner_permin_tmp1
 	                  WHERE NewuID = OlduID
 	                    AND NewgID = OldgID);
 	INSERT INTO ownership_chg
 	       SELECT * FROM fdir
-	        WHERE file IN (SELECT to_loc FROM mov_ownership_tmp1
+	        WHERE file IN (SELECT to_loc FROM mov_owner_permin_tmp1
 	                        WHERE NOT NewuID = OlduID
 	                           OR NOT NewgID = OldgID)
 	          AND file NOT IN (SELECT file FROM ownership_chg);
 
-	CREATE TEMP TABLE mov_permin_tmp0
-	  AS SELECT move_files.from_loc, move_files.to_loc,
-	            fdir.permin AS newPermin
-               FROM move_files INNER JOIN fdir
-	         ON move_files.to_loc = fdir.file;
-	CREATE TEMP TABLE mov_permin_tmp1
-	  AS SELECT mov_permin_tmp0.*, tdir.permin AS oldPermin
-               FROM mov_permin_tmp0 INNER JOIN tdir
-	         ON mov_permin_tmp0.from_loc = tdir.file;
 	DELETE FROM permin_chg
-	  WHERE file IN (SELECT to_loc FROM mov_permin_tmp1
+	  WHERE file IN (SELECT to_loc FROM mov_owner_permin_tmp1
 	                  WHERE newPermin = oldPermin);
 	INSERT INTO permin_chg
 	       SELECT * FROM fdir
-	        WHERE file IN (SELECT to_loc FROM mov_permin_tmp1
+	        WHERE file IN (SELECT to_loc FROM mov_owner_permin_tmp1
 	                        WHERE NOT newPermin = oldPermin)
 	          AND file NOT IN (SELECT file FROM permin_chg);
 
