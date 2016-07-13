@@ -204,6 +204,11 @@ function create_the_difference_tables() {
 	    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size)
 	          AND NOT fdir.type = tdir.type;
 
+	CREATE TABLE set_ownership AS SELECT fdir.*
+	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
+	    WHERE NOT (fdir.uID = tdir.uID AND fdir.gID = tdir.gID)
+	          AND fdir.type = tdir.type;
+
 	CREATE TABLE all_old AS
 	    SELECT * FROM remv;
 	INSERT INTO all_old SELECT * FROM tdir
@@ -293,16 +298,16 @@ function update_the_tables_with_moved_files() {
                FROM mov_owner_permin_tmp0 INNER JOIN fdir
 	         ON mov_owner_permin_tmp0.to_loc = fdir.file;
 
-	DELETE FROM ownership_chg
+	DELETE FROM set_ownership
 	  WHERE file IN (SELECT to_loc FROM mov_owner_permin_tmp1
 	                  WHERE NewuID = OlduID
 	                    AND NewgID = OldgID);
-	INSERT INTO ownership_chg
+	INSERT INTO set_ownership
 	       SELECT * FROM fdir
 	        WHERE file IN (SELECT to_loc FROM mov_owner_permin_tmp1
 	                        WHERE NOT NewuID = OlduID
 	                           OR NOT NewgID = OldgID)
-	          AND file NOT IN (SELECT file FROM ownership_chg);
+	          AND file NOT IN (SELECT file FROM set_ownership);
 
 	DELETE FROM permin_chg
 	  WHERE file IN (SELECT to_loc FROM mov_owner_permin_tmp1
@@ -511,7 +516,7 @@ function copy_new_files() {
 function setup_changed_ownership() {
 
 
-  sqlite3 $SQLFile "SELECT uID, gID, file FROM ownership_chg
+  sqlite3 $SQLFile "SELECT uID, gID, file FROM set_ownership
                       ORDER BY file
                       DESC;" \
    | sed "s/'/'\\\\''/g ;
