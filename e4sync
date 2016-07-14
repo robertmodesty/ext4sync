@@ -209,6 +209,11 @@ function create_the_difference_tables() {
 	    WHERE NOT (fdir.uID = tdir.uID AND fdir.gID = tdir.gID)
 	          AND fdir.type = tdir.type;
 
+	CREATE TABLE set_permin AS SELECT fdir.*
+	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
+	    WHERE NOT fdir.permin = tdir.permin
+	          AND fdir.type = tdir.type;
+
 	CREATE TABLE all_old AS
 	    SELECT * FROM remv;
 	INSERT INTO all_old SELECT * FROM tdir
@@ -309,14 +314,14 @@ function update_the_tables_with_moved_files() {
 	                           OR NOT NewgID = OldgID)
 	          AND file NOT IN (SELECT file FROM set_ownership);
 
-	DELETE FROM permin_chg
+	DELETE FROM set_permin
 	  WHERE file IN (SELECT to_loc FROM mov_owner_permin_tmp1
 	                  WHERE newPermin = oldPermin);
-	INSERT INTO permin_chg
+	INSERT INTO set_permin
 	       SELECT * FROM fdir
 	        WHERE file IN (SELECT to_loc FROM mov_owner_permin_tmp1
 	                        WHERE NOT newPermin = oldPermin)
-	          AND file NOT IN (SELECT file FROM permin_chg);
+	          AND file NOT IN (SELECT file FROM set_permin);
 
 	EOF
 }
@@ -530,7 +535,7 @@ function setup_changed_ownership() {
 function setup_changed_permission() {
 
 
-  sqlite3 $SQLFile "SELECT permin, file FROM permin_chg
+  sqlite3 $SQLFile "SELECT permin, file FROM set_permin
                       ORDER BY file
                       DESC;" \
    | sed "s/'/'\\\\''/g ;
