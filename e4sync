@@ -376,6 +376,8 @@ function files_been_denied_when_sync() {
 	      AND file IN (SELECT filepath FROM all_old)
 	    LIMIT 1;
 
+	SELECT file FROM set_ownership LIMIT 1;
+
 	DROP TABLE user;
 
 	EOF
