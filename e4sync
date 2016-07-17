@@ -378,6 +378,10 @@ function files_been_denied_when_sync() {
 
 	SELECT file FROM set_ownership LIMIT 1;
 
+	SELECT file FROM set_permin
+	    WHERE uID != (SELECT uID FROM user)
+	    LIMIT 1;
+
 	DROP TABLE user;
 
 	EOF
