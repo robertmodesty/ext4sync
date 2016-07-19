@@ -702,6 +702,10 @@ function synchronize(){
 
   copy_new_files
 
+  setup_changed_ownership
+
+  setup_changed_permission
+
   reset_directory_time
 
   if $There_Are_Files_To_Move ; then
