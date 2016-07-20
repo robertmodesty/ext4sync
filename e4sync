@@ -189,16 +189,6 @@ function create_the_difference_tables() {
 	    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size)
 	          AND fdir.type = tdir.type;
 
-	CREATE TABLE ownership_chg AS SELECT fdir.*
-	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
-	    WHERE NOT (fdir.uID = tdir.uID AND fdir.gID = tdir.gID)
-	          AND fdir.type = tdir.type;
-
-	CREATE TABLE permission_chg AS SELECT fdir.*
-	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
-	    WHERE NOT fdir.permission = tdir.permission
-	          AND fdir.type = tdir.type;
-
 	CREATE TABLE typechg AS SELECT fdir.*
 	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
 	    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size)
