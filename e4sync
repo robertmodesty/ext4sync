@@ -194,6 +194,20 @@ function create_the_difference_tables() {
 	    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size)
 	          AND NOT fdir.type = tdir.type;
 
+	CREATE TABLE set_ownership AS SELECT fdir.*
+	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
+	    WHERE NOT (fdir.uID = tdir.uID AND fdir.gID = tdir.gID)
+	          AND NOT
+	              (fdir.time = tdir.time AND fdir.size = tdir.size)
+	          AND fdir.type = tdir.type;
+
+	CREATE TABLE set_permission AS SELECT fdir.*
+	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
+	    WHERE NOT fdir.permission = tdir.permission
+	          AND NOT
+	              (fdir.time = tdir.time AND fdir.size = tdir.size)
+	          AND fdir.type = tdir.type;
+
 	CREATE TABLE all_old AS
 	    SELECT * FROM remv;
 	INSERT INTO all_old SELECT * FROM tdir
@@ -269,6 +283,40 @@ function update_the_tables_with_moved_files() {
 	DELETE FROM chg
 	  WHERE file IN (SELECT to_loc FROM move_files);
 
+	CREATE TEMP TABLE mov_owner_permission_tmp0
+	  AS SELECT move_files.from_loc,
+	            tdir.uID AS OlduID, tdir.gID AS OldgID,
+	            tdir.permission AS oldPermission,
+	            move_files.to_loc
+               FROM move_files INNER JOIN tdir
+	         ON move_files.from_loc = tdir.file;
+	CREATE TEMP TABLE mov_owner_permission_tmp1
+	  AS SELECT mov_owner_permission_tmp0.*,
+	            fdir.uID AS NewuID, fdir.gID AS NewgID,
+	            fdir.permission AS newPermission
+               FROM mov_owner_permission_tmp0 INNER JOIN fdir
+	         ON mov_owner_permission_tmp0.to_loc = fdir.file;
+
+	DELETE FROM set_ownership
+	  WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp1
+	                  WHERE NewuID = OlduID
+	                    AND NewgID = OldgID);
+	INSERT INTO set_ownership
+	       SELECT * FROM fdir
+	        WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp1
+	                        WHERE NOT NewuID = OlduID
+	                           OR NOT NewgID = OldgID)
+	          AND file NOT IN (SELECT file FROM set_ownership);
+
+	DELETE FROM set_permission
+	  WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp1
+	                  WHERE newPermission = oldPermission);
+	INSERT INTO set_permission
+	       SELECT * FROM fdir
+	        WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp1
+	                        WHERE NOT newPermission = oldPermission)
+	          AND file NOT IN (SELECT file FROM set_permission);
+
 	EOF
 }
 
@@ -289,18 +337,18 @@ function files_been_denied_when_sync() {
 	SELECT file FROM all_new
 	    WHERE file NOT IN (SELECT to_loc FROM move_files)
 	      AND (   uID != (SELECT uID FROM user)
-	           OR permin LIKE '3%'
-	           OR permin LIKE '2%'
-	           OR permin LIKE '1%'
-	           OR permin LIKE '0%')
+	           OR permission LIKE '3%'
+	           OR permission LIKE '2%'
+	           OR permission LIKE '1%'
+	           OR permission LIKE '0%')
 	    LIMIT 1;
 
 	SELECT file FROM tdir
 	    WHERE (   uID != (SELECT uID FROM user)
-	           OR permin LIKE '5%'
-	           OR permin LIKE '4%'
-	           OR permin LIKE '1%'
-	           OR permin LIKE '0%')
+	           OR permission LIKE '5%'
+	           OR permission LIKE '4%'
+	           OR permission LIKE '1%'
+	           OR permission LIKE '0%')
 	      AND file IN (SELECT filepath FROM all_new)
 	    LIMIT 1;
 
@@ -311,11 +359,17 @@ function files_been_denied_when_sync() {
 
 	SELECT file FROM tdir
 	    WHERE (   uID != (SELECT uID FROM user)
-	           OR permin LIKE '5%'
-	           OR permin LIKE '4%'
-	           OR permin LIKE '1%'
-	           OR permin LIKE '0%')
+	           OR permission LIKE '5%'
+	           OR permission LIKE '4%'
+	           OR permission LIKE '1%'
+	           OR permission LIKE '0%')
 	      AND file IN (SELECT filepath FROM all_old)
+	    LIMIT 1;
+
+	SELECT file FROM set_ownership LIMIT 1;
+
+	SELECT file FROM set_permission
+	    WHERE uID != (SELECT uID FROM user)
 	    LIMIT 1;
 
 	DROP TABLE user;
@@ -381,7 +435,7 @@ function set_attr_of_dirs_above_moved_files() {
   fi
 
   sqlite3 $SQLFile "
-   SELECT uID, gID, permin, file FROM fdir
+   SELECT uID, gID, permission, file FROM fdir
      WHERE file IN (SELECT * FROM all_directory_above_move_to);" \
    | sed "s/'/'\\\\''/g ;
           s/^\([^|]*\)|\([^|]*\)|\([^|]*\)|\(.*\)/$shellCommands/ ;
@@ -462,6 +516,34 @@ function copy_new_files() {
            s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
     | bash || exit $?
+}
+
+function setup_changed_ownership() {
+
+
+  sqlite3 $SQLFile "SELECT uID, gID, file FROM set_ownership
+                      ORDER BY file
+                      DESC;" \
+   | sed "s/'/'\\\\''/g ;
+          s/^\([^|]*\)|\([^|]*\)|\(.*\)/chown \1:\2 '\3'/ ;
+          s/$/ || exit \$?/ ;
+          s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
+          s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+   | bash || exit $?
+}
+
+function setup_changed_permission() {
+
+
+  sqlite3 $SQLFile "SELECT permission, file FROM set_permission
+                      ORDER BY file
+                      DESC;" \
+   | sed "s/'/'\\\\''/g ;
+          s/^\([^|]*\)|\(.*\)/chmod \1 '\2'/ ;
+          s/$/ || exit \$?/ ;
+          s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
+          s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+   | bash || exit $?
 }
 
 function reset_directory_time() {
@@ -548,8 +630,9 @@ function scan_directory() {
   Hash2quote+="\1'\2', '\3', '\4\5', '\5', \6, '\7/\8', '\7', '\8');|"
 
   cd $dirName
-  (echo "CREATE TABLE $tabl(dev_num, inode, hlinks, uID, gID, permin, type," \
-   "time, subsecond, size, file, filepath, filename);"
+  (echo "CREATE TABLE $tabl(dev_num, inode, hlinks, uID, gID," \
+                           "permission, type, time, subsecond," \
+                           "size, file, filepath, filename);"
    echo "BEGIN;"
    find -printf "$Find2SQLstr" \
      | tail -n +2 \
@@ -608,6 +691,10 @@ function synchronize(){
   fi
 
   copy_new_files
+
+  setup_changed_ownership
+
+  setup_changed_permission
 
   reset_directory_time
 
