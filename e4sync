@@ -352,11 +352,6 @@ function files_been_denied_when_sync() {
 	      AND file IN (SELECT filepath FROM all_new)
 	    LIMIT 1;
 
-	SELECT file FROM all_old
-	    WHERE uID != (SELECT uID FROM user)
-	      AND file IN (SELECT from_loc FROM move_files)
-	    LIMIT 1;
-
 	SELECT file FROM tdir
 	    WHERE (   uID != (SELECT uID FROM user)
 	           OR permission LIKE '5%'
