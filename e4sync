@@ -616,6 +616,7 @@ function scan_directory() {
   local tabl="$1"
   local dirName="$2"
   local Find2SQLstr Hash2quote
+  local errfile="$( mktemp )"
 
   Find2SQLstr="INSERT INTO $tabl VALUES(%D, %i, %n, %U, %G, #%m#, #%y#, #%T+#,"
   Find2SQLstr+=" %s, #%p --TailProtect-96H=UOW8WBQ--\n"
@@ -629,13 +630,21 @@ function scan_directory() {
                            "permission, type, time, subsecond," \
                            "size, file, filepath, filename);"
    echo "BEGIN;"
-   find -printf "$Find2SQLstr" \
+   find -printf "$Find2SQLstr" 2> $errfile \
      | tail -n +2 \
      | sed 's/+/ /; s/\\/--BackslashProtect-96H=UOW8WBQ--/g;'" s/'/''/g" \
      | new_line_protect \
      | sed "$Hash2quote"
    echo "COMMIT;") | sqlite3 $SQLFile
   cd - > /dev/null
+
+  if [ "$( cat $errfile )" == "" ] ; then
+    cat $errfile 1>&2
+    rm $errfile
+    return 1
+  fi
+
+  rm $errfile
 }
 
 
@@ -715,16 +724,16 @@ function main() {
   process_env_and_args "$@"
 
   echo "1.  Scanning '$FromDir'..."
-  scan_directory fdir "$FromDir"
+  scan_directory fdir "$FromDir" || exit $?
 
   echo "2.  Scanning '$ToDir'..."
-  scan_directory tdir "$ToDir"
+  scan_directory tdir "$ToDir" || exit $?
 
   echo "3.  Comparing two directorys..."
   compare_directorys
 
   if permission_could_deny ; then
-    echo 'Permission could deny, are you root?'
+    echo 'Permission could deny, are you root?' 1>&2
     rm $SQLFile
     exit 1
   fi
