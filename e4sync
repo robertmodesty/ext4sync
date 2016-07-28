@@ -638,7 +638,7 @@ function scan_directory() {
    echo "COMMIT;") | sqlite3 $SQLFile
   cd - > /dev/null
 
-  if [ "$( cat $errfile )" == "" ] ; then
+  if [ "$( cat $errfile )" != "" ] ; then
     cat $errfile 1>&2
     rm $errfile
     return 1
