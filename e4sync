@@ -19,8 +19,8 @@ test "$UserID" == "0" \
 readonly ThisProgram="$0"
 
 #   setup in function get_both_directory_names():
-#       readonly FromDir
-#       readonly ToDir
+#       readonly TemplateDir
+#       readonly UpdatingDir
 
 #   setup in function process_env_and_args():
 #       readonly Arg_Sets_Move_Files
@@ -131,18 +131,18 @@ function exit_if_no_sqlite3() {
 
 
 function get_both_directory_names() {
-  local fDir tDir hyphen
+  local tmpltDir updatDir hyphen
   declare -i count=0
 
   while [ -n "$1" ] ; do
     count=count+1
     if [ "-" != "${1:0:1}" ] || [ -n "$hyphen" ] ; then
       hyphen=""
-      if [ -n "$fDir" ] ; then
-        tDir="$1"
+      if [ -n "$tmpltDir" ] ; then
+        updatDir="$1"
         break
       else
-        fDir="$1"
+        tmpltDir="$1"
       fi
     elif [ "-" == "$1" ] ; then
       hyphen="on"
@@ -150,20 +150,20 @@ function get_both_directory_names() {
     shift
   done
 
-  if [ "$fDir" == "" ] || [ "$tDir" == "" ] ; then
+  if [ "$tmpltDir" == "" ] || [ "$updatDir" == "" ] ; then
     echo "Error:  need two directories."
     show_help_message
     exit 1
-  elif [ ! -d "$fDir" ] ; then
-    echo "Error:  '$fDir' is not a valid directory!"
+  elif [ ! -d "$tmpltDir" ] ; then
+    echo "Error:  '$tmpltDir' is not a valid directory!"
     exit 1
-  elif [ ! -d "$tDir" ] ; then
-    echo "Error:  '$tDir' is not a valid directory!"
+  elif [ ! -d "$updatDir" ] ; then
+    echo "Error:  '$updatDir' is not a valid directory!"
     exit 1
   fi
 
-  readonly FromDir="$( full_path "$fDir" )"
-  readonly ToDir="$( full_path "$tDir" )"
+  readonly TemplateDir="$( full_path "$tmpltDir" )"
+  readonly UpdatingDir="$( full_path "$updatDir" )"
 }
 
 
@@ -496,7 +496,7 @@ function copy_new_files() {
          ORDER BY file;" \
    | pack_into_one_directory \
    | sed "s/'/'\\\\''/g ;
-          s|\(.*\)|cp -a $VerbsOptn '$FromDir/\1' '\1'| ;
+          s|\(.*\)|cp -a $VerbsOptn '$TemplateDir/\1' '\1'| ;
           s/$/ || exit \$?/ ;
           s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
           s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
@@ -506,7 +506,7 @@ function copy_new_files() {
                           WHERE type = 'f'
                           ORDER BY file;" \
     | sed "s/'/'\\\\''/g ;
-           s|\(.*\)|cp -af $VerbsOptn '$FromDir/\1' '\1'| ;
+           s|\(.*\)|cp -af $VerbsOptn '$TemplateDir/\1' '\1'| ;
            s/$/ || exit \$?/ ;
            s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
@@ -681,10 +681,10 @@ function permission_could_deny() {
 function synchronize(){
   local moveProtctDir
 
-  cd $ToDir
+  cd $UpdatingDir
 
   if $There_Are_Files_To_Move ; then
-    moveProtctDir="$( mktemp -d -p $ToDir )"
+    moveProtctDir="$( mktemp -d -p $UpdatingDir )"
     store_files_to_be_moved $moveProtctDir
   fi
 
@@ -723,11 +723,11 @@ function main() {
 
   process_env_and_args "$@"
 
-  echo "1.  Scanning '$FromDir'..."
-  scan_directory fdir "$FromDir" || exit $?
+  echo "1.  Scanning '$TemplateDir'..."
+  scan_directory fdir "$TemplateDir" || exit $?
 
-  echo "2.  Scanning '$ToDir'..."
-  scan_directory tdir "$ToDir" || exit $?
+  echo "2.  Scanning '$UpdatingDir'..."
+  scan_directory tdir "$UpdatingDir" || exit $?
 
   echo "3.  Comparing two directorys..."
   compare_directorys
@@ -738,7 +738,7 @@ function main() {
     exit 1
   fi
 
-  echo "4.  Synchronizing to '$ToDir'"
+  echo "4.  Synchronizing to '$UpdatingDir'"
   synchronize
 
   rm $SQLFile
