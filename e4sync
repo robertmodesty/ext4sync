@@ -104,7 +104,9 @@ function all_directory_above_the_files() {
 function show_help_message() {
   cat <<- EOF
 
-	Please use:  $ThisProgram [OPTIONS...] ORIGIN_DIRECTORY TARGET_DIRECTORY
+	Please use:
+
+	  $ThisProgram [OPTIONS...]  DIRECTORY_AS_TEMPLATE DIRECTORY_TO_BE_UPDATED
 
 	    OPTIONS:
 	            -m, --moving-files
