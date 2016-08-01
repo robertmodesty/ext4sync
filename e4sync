@@ -19,8 +19,8 @@ test "$UserID" == "0" \
 readonly ThisProgram="$0"
 
 #   setup in function get_both_directory_names():
-#       readonly FromDir
-#       readonly ToDir
+#       readonly TemplateDir
+#       readonly UpdatingDir
 
 #   setup in function process_env_and_args():
 #       readonly Arg_Sets_Move_Files
@@ -104,7 +104,9 @@ function all_directory_above_the_files() {
 function show_help_message() {
   cat <<- EOF
 
-	Please use:  $ThisProgram [OPTIONS...] ORIGIN_DIRECTORY TARGET_DIRECTORY
+	Please use:
+
+	  $ThisProgram [OPTIONS...]  DIRECTORY_AS_TEMPLATE DIRECTORY_TO_BE_UPDATED
 
 	    OPTIONS:
 	            -m, --moving-files
@@ -131,18 +133,18 @@ function exit_if_no_sqlite3() {
 
 
 function get_both_directory_names() {
-  local fDir tDir hyphen
+  local tmpltDir updatDir hyphen
   declare -i count=0
 
   while [ -n "$1" ] ; do
     count=count+1
     if [ "-" != "${1:0:1}" ] || [ -n "$hyphen" ] ; then
       hyphen=""
-      if [ -n "$fDir" ] ; then
-        tDir="$1"
+      if [ -n "$tmpltDir" ] ; then
+        updatDir="$1"
         break
       else
-        fDir="$1"
+        tmpltDir="$1"
       fi
     elif [ "-" == "$1" ] ; then
       hyphen="on"
@@ -150,20 +152,20 @@ function get_both_directory_names() {
     shift
   done
 
-  if [ "$fDir" == "" ] || [ "$tDir" == "" ] ; then
+  if [ "$tmpltDir" == "" ] || [ "$updatDir" == "" ] ; then
     echo "Error:  need two directories."
     show_help_message
     exit 1
-  elif [ ! -d "$fDir" ] ; then
-    echo "Error:  '$fDir' is not a valid directory!"
+  elif [ ! -d "$tmpltDir" ] ; then
+    echo "Error:  '$tmpltDir' is not a valid directory!"
     exit 1
-  elif [ ! -d "$tDir" ] ; then
-    echo "Error:  '$tDir' is not a valid directory!"
+  elif [ ! -d "$updatDir" ] ; then
+    echo "Error:  '$updatDir' is not a valid directory!"
     exit 1
   fi
 
-  readonly FromDir="$( full_path "$fDir" )"
-  readonly ToDir="$( full_path "$tDir" )"
+  readonly TemplateDir="$( full_path "$tmpltDir" )"
+  readonly UpdatingDir="$( full_path "$updatDir" )"
 }
 
 
@@ -178,41 +180,49 @@ function create_the_difference_tables() {
 
   sqlite3 $SQLFile <<- EOF
 
-	CREATE TABLE remv AS SELECT * FROM tdir
-	    WHERE file NOT IN (SELECT file FROM fdir);
+	CREATE TABLE remv AS SELECT * FROM updat_dir
+	    WHERE file NOT IN (SELECT file FROM tmplt_dir);
 
-	CREATE TABLE new AS SELECT * FROM fdir
-	    WHERE file NOT IN (SELECT file FROM tdir);
+	CREATE TABLE new AS SELECT * FROM tmplt_dir
+	    WHERE file NOT IN (SELECT file FROM updat_dir);
 
-	CREATE TABLE chg AS SELECT fdir.*
-	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
-	    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size)
-	          AND fdir.type = tdir.type;
+	CREATE TABLE chg AS SELECT tmplt_dir.*
+	    FROM tmplt_dir INNER JOIN updat_dir
+              ON tmplt_dir.file = updat_dir.file
+	    WHERE NOT (    tmplt_dir.time = updat_dir.time
+                       AND tmplt_dir.size = updat_dir.size)
+	          AND tmplt_dir.type = updat_dir.type;
 
-	CREATE TABLE typechg AS SELECT fdir.*
-	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
-	    WHERE NOT (fdir.time = tdir.time AND fdir.size = tdir.size)
-	          AND NOT fdir.type = tdir.type;
+	CREATE TABLE typechg AS SELECT tmplt_dir.*
+	    FROM tmplt_dir INNER JOIN updat_dir
+              ON tmplt_dir.file = updat_dir.file
+	    WHERE NOT (    tmplt_dir.time = updat_dir.time
+                       AND tmplt_dir.size = updat_dir.size)
+	          AND NOT tmplt_dir.type = updat_dir.type;
 
-	CREATE TABLE set_ownership AS SELECT fdir.*
-	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
-	    WHERE NOT (fdir.uID = tdir.uID AND fdir.gID = tdir.gID)
+	CREATE TABLE set_ownership AS SELECT tmplt_dir.*
+	    FROM tmplt_dir INNER JOIN updat_dir
+              ON tmplt_dir.file = updat_dir.file
+	    WHERE NOT (    tmplt_dir.uID = updat_dir.uID
+                       AND tmplt_dir.gID = updat_dir.gID)
 	          AND NOT
-	              (fdir.time = tdir.time AND fdir.size = tdir.size)
-	          AND fdir.type = tdir.type;
+	              (    tmplt_dir.time = updat_dir.time
+                       AND tmplt_dir.size = updat_dir.size)
+	          AND tmplt_dir.type = updat_dir.type;
 
-	CREATE TABLE set_permission AS SELECT fdir.*
-	    FROM fdir INNER JOIN tdir ON fdir.file = tdir.file
-	    WHERE NOT fdir.permission = tdir.permission
-	          AND NOT
-	              (fdir.time = tdir.time AND fdir.size = tdir.size)
-	          AND fdir.type = tdir.type;
+	CREATE TABLE set_permission AS SELECT tmplt_dir.*
+	    FROM tmplt_dir INNER JOIN updat_dir
+              ON tmplt_dir.file = updat_dir.file
+	    WHERE NOT tmplt_dir.permission = updat_dir.permission
+	          AND NOT (    tmplt_dir.time = updat_dir.time
+                           AND tmplt_dir.size = updat_dir.size)
+	          AND tmplt_dir.type = updat_dir.type;
 
 	CREATE TABLE all_old AS
 	    SELECT * FROM remv;
-	INSERT INTO all_old SELECT * FROM tdir
+	INSERT INTO all_old SELECT * FROM updat_dir
 	    WHERE file IN (SELECT file FROM chg);
-	INSERT INTO all_old SELECT * FROM tdir
+	INSERT INTO all_old SELECT * FROM updat_dir
 	    WHERE file IN (SELECT file FROM typechg);
 
 	CREATE TABLE all_new AS SELECT * FROM new;
@@ -285,24 +295,24 @@ function update_the_tables_with_moved_files() {
 
 	CREATE TEMP TABLE mov_owner_permission_tmp0
 	  AS SELECT move_files.from_loc,
-	            tdir.uID AS OlduID, tdir.gID AS OldgID,
-	            tdir.permission AS oldPermission,
+	            updat_dir.uID AS OlduID, updat_dir.gID AS OldgID,
+	            updat_dir.permission AS oldPermission,
 	            move_files.to_loc
-               FROM move_files INNER JOIN tdir
-	         ON move_files.from_loc = tdir.file;
+               FROM move_files INNER JOIN updat_dir
+	         ON move_files.from_loc = updat_dir.file;
 	CREATE TEMP TABLE mov_owner_permission_tmp1
 	  AS SELECT mov_owner_permission_tmp0.*,
-	            fdir.uID AS NewuID, fdir.gID AS NewgID,
-	            fdir.permission AS newPermission
-               FROM mov_owner_permission_tmp0 INNER JOIN fdir
-	         ON mov_owner_permission_tmp0.to_loc = fdir.file;
+	            tmplt_dir.uID AS NewuID, tmplt_dir.gID AS NewgID,
+	            tmplt_dir.permission AS newPermission
+               FROM mov_owner_permission_tmp0 INNER JOIN tmplt_dir
+	         ON mov_owner_permission_tmp0.to_loc = tmplt_dir.file;
 
 	DELETE FROM set_ownership
 	  WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp1
 	                  WHERE NewuID = OlduID
 	                    AND NewgID = OldgID);
 	INSERT INTO set_ownership
-	       SELECT * FROM fdir
+	       SELECT * FROM tmplt_dir
 	        WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp1
 	                        WHERE NOT NewuID = OlduID
 	                           OR NOT NewgID = OldgID)
@@ -312,7 +322,7 @@ function update_the_tables_with_moved_files() {
 	  WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp1
 	                  WHERE newPermission = oldPermission);
 	INSERT INTO set_permission
-	       SELECT * FROM fdir
+	       SELECT * FROM tmplt_dir
 	        WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp1
 	                        WHERE NOT newPermission = oldPermission)
 	          AND file NOT IN (SELECT file FROM set_permission);
@@ -343,7 +353,7 @@ function files_been_denied_when_sync() {
 	           OR permission LIKE '0%')
 	    LIMIT 1;
 
-	SELECT file FROM tdir
+	SELECT file FROM updat_dir
 	    WHERE (   uID != (SELECT uID FROM user)
 	           OR permission LIKE '5%'
 	           OR permission LIKE '4%'
@@ -352,7 +362,7 @@ function files_been_denied_when_sync() {
 	      AND file IN (SELECT filepath FROM all_new)
 	    LIMIT 1;
 
-	SELECT file FROM tdir
+	SELECT file FROM updat_dir
 	    WHERE (   uID != (SELECT uID FROM user)
 	           OR permission LIKE '5%'
 	           OR permission LIKE '4%'
@@ -430,7 +440,7 @@ function set_attr_of_dirs_above_moved_files() {
   fi
 
   sqlite3 $SQLFile "
-   SELECT uID, gID, permission, file FROM fdir
+   SELECT uID, gID, permission, file FROM tmplt_dir
      WHERE file IN (SELECT * FROM all_directory_above_move_to);" \
    | sed "s/'/'\\\\''/g ;
           s/^\([^|]*\)|\([^|]*\)|\([^|]*\)|\(.*\)/$shellCommands/ ;
@@ -466,7 +476,7 @@ function remove_old_files() {
   local remvs
 
   remvs=$( sqlite3 $SQLFile "
-             SELECT type, file FROM tdir
+             SELECT type, file FROM updat_dir
                WHERE file IN (SELECT file FROM remv)
                   OR file IN (SELECT file FROM typechg
                                 WHERE file NOT IN
@@ -488,7 +498,7 @@ function remove_old_files() {
 function copy_new_files() {
 
   sqlite3 $SQLFile "
-    SELECT type, file FROM fdir
+    SELECT type, file FROM tmplt_dir
       WHERE file IN (SELECT file FROM new)
          OR file IN (SELECT file FROM typechg
                        WHERE file NOT IN (SELECT to_loc FROM move_files)
@@ -496,7 +506,7 @@ function copy_new_files() {
          ORDER BY file;" \
    | pack_into_one_directory \
    | sed "s/'/'\\\\''/g ;
-          s|\(.*\)|cp -a $VerbsOptn '$FromDir/\1' '\1'| ;
+          s|\(.*\)|cp -a $VerbsOptn '$TemplateDir/\1' '\1'| ;
           s/$/ || exit \$?/ ;
           s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
           s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
@@ -506,7 +516,7 @@ function copy_new_files() {
                           WHERE type = 'f'
                           ORDER BY file;" \
     | sed "s/'/'\\\\''/g ;
-           s|\(.*\)|cp -af $VerbsOptn '$FromDir/\1' '\1'| ;
+           s|\(.*\)|cp -af $VerbsOptn '$TemplateDir/\1' '\1'| ;
            s/$/ || exit \$?/ ;
            s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
            s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
@@ -543,7 +553,7 @@ function setup_changed_permission() {
 
 function reset_directory_time() {
 
-  sqlite3 $SQLFile "SELECT time, file FROM fdir
+  sqlite3 $SQLFile "SELECT time, file FROM tmplt_dir
                       WHERE type = 'd'
                       ORDER BY file
                       DESC;" \
@@ -681,10 +691,10 @@ function permission_could_deny() {
 function synchronize(){
   local moveProtctDir
 
-  cd $ToDir
+  cd $UpdatingDir
 
   if $There_Are_Files_To_Move ; then
-    moveProtctDir="$( mktemp -d -p $ToDir )"
+    moveProtctDir="$( mktemp -d -p $UpdatingDir )"
     store_files_to_be_moved $moveProtctDir
   fi
 
@@ -723,11 +733,11 @@ function main() {
 
   process_env_and_args "$@"
 
-  echo "1.  Scanning '$FromDir'..."
-  scan_directory fdir "$FromDir" || exit $?
+  echo "1.  Scanning '$TemplateDir'..."
+  scan_directory tmplt_dir "$TemplateDir" || exit $?
 
-  echo "2.  Scanning '$ToDir'..."
-  scan_directory tdir "$ToDir" || exit $?
+  echo "2.  Scanning '$UpdatingDir'..."
+  scan_directory updat_dir "$UpdatingDir" || exit $?
 
   echo "3.  Comparing two directorys..."
   compare_directorys
@@ -738,7 +748,7 @@ function main() {
     exit 1
   fi
 
-  echo "4.  Synchronizing to '$ToDir'"
+  echo "4.  Synchronizing to '$UpdatingDir'"
   synchronize
 
   rm $SQLFile
