@@ -293,37 +293,37 @@ function update_the_tables_with_moved_files() {
 	DELETE FROM chg
 	  WHERE file IN (SELECT to_loc FROM move_files);
 
-	CREATE TEMP TABLE mov_owner_permission_tmp0
+	CREATE TEMP TABLE mov_files_oldID_tmp
 	  AS SELECT move_files.from_loc,
 	            updat_dir.uID AS OlduID, updat_dir.gID AS OldgID,
 	            updat_dir.permission AS oldPermission,
 	            move_files.to_loc
                FROM move_files INNER JOIN updat_dir
 	         ON move_files.from_loc = updat_dir.file;
-	CREATE TEMP TABLE mov_owner_permission_tmp1
-	  AS SELECT mov_owner_permission_tmp0.*,
+	CREATE TEMP TABLE mov_owner_permission_tmp
+	  AS SELECT mov_files_oldID_tmp.*,
 	            tmplt_dir.uID AS NewuID, tmplt_dir.gID AS NewgID,
 	            tmplt_dir.permission AS newPermission
-               FROM mov_owner_permission_tmp0 INNER JOIN tmplt_dir
-	         ON mov_owner_permission_tmp0.to_loc = tmplt_dir.file;
+               FROM mov_files_oldID_tmp INNER JOIN tmplt_dir
+	         ON mov_files_oldID_tmp.to_loc = tmplt_dir.file;
 
 	DELETE FROM set_ownership
-	  WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp1
+	  WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp
 	                  WHERE NewuID = OlduID
 	                    AND NewgID = OldgID);
 	INSERT INTO set_ownership
 	       SELECT * FROM tmplt_dir
-	        WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp1
+	        WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp
 	                        WHERE NOT NewuID = OlduID
 	                           OR NOT NewgID = OldgID)
 	          AND file NOT IN (SELECT file FROM set_ownership);
 
 	DELETE FROM set_permission
-	  WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp1
+	  WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp
 	                  WHERE newPermission = oldPermission);
 	INSERT INTO set_permission
 	       SELECT * FROM tmplt_dir
-	        WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp1
+	        WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp
 	                        WHERE NOT newPermission = oldPermission)
 	          AND file NOT IN (SELECT file FROM set_permission);
 
