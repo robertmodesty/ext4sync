@@ -288,6 +288,8 @@ function create_hierarchy_tables_of_moved_files() {
                   SELECT filepath
                     FROM directorys_of_move_to JOIN tmplt_dir
                    USING (file)
+                UNION
+                  SELECT filepath FROM updat_dir
                 );"
   ) | sqlite3 $SQLFile
 }
