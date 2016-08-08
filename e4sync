@@ -275,7 +275,7 @@ function create_hierarchy_tables_of_moved_files() {
       | all_directory_above_the_files \
       | sed "s/^/INSERT INTO all_directory_above_move_to VALUES('/ ; s/$/');/"
     echo "commit;"
-    echo "CREATE TABLE directorys_of_move_to AS
+    echo "CREATE TABLE terminal_directorys_of_move_to AS
               SELECT file FROM all_directory_above_move_to
                WHERE file NOT IN (
                   SELECT tmplt_dir.filepath
@@ -283,10 +283,10 @@ function create_hierarchy_tables_of_moved_files() {
                    USING (file)
                 );"
     echo "CREATE TABLE directorys_made_for_moving_files AS
-              SELECT file FROM directorys_of_move_to
+              SELECT file FROM terminal_directorys_of_move_to
                WHERE file NOT IN (
                   SELECT filepath
-                    FROM directorys_of_move_to JOIN tmplt_dir
+                    FROM terminal_directorys_of_move_to JOIN tmplt_dir
                    USING (file)
                 UNION
                   SELECT filepath FROM updat_dir
@@ -423,7 +423,7 @@ function store_files_to_be_moved() {
   local moveProtctDir="$1"
 
     eval mkdir -p $VerbsOptn $(
-     sqlite3 $SQLFile "SELECT file FROM directorys_of_move_to;" \
+     sqlite3 $SQLFile "SELECT file FROM terminal_directorys_of_move_to;" \
       | sed "s/'/'\\\\''/g ;
              s|^| '$moveProtctDir/| ; s/$/'/ ;
              s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
