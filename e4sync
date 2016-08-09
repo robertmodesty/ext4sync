@@ -331,7 +331,9 @@ function update_the_tables_with_moved_files() {
 	       SELECT * FROM tmplt_dir
 	        WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp
 	                        WHERE NOT NewuID = OlduID
-	                           OR NOT NewgID = OldgID)
+	                           OR NOT NewgID = OldgID
+	                     UNION
+	                       SELECT file FROM all_directory_above_move_to)
 	          AND file NOT IN (SELECT file FROM set_ownership);
 
 	DELETE FROM set_permission
