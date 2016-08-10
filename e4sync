@@ -342,7 +342,9 @@ function update_the_tables_with_moved_files() {
 	INSERT INTO set_permission
 	       SELECT * FROM tmplt_dir
 	        WHERE file IN (SELECT to_loc FROM mov_owner_permission_tmp
-	                        WHERE NOT newPermission = oldPermission)
+	                        WHERE NOT newPermission = oldPermission
+	                     UNION
+	                       SELECT file FROM all_directory_above_move_to)
 	          AND file NOT IN (SELECT file FROM set_permission);
 
 	EOF
