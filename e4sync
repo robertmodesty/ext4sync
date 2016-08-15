@@ -277,7 +277,10 @@ function create_hierarchy_tables_of_moved_files() {
     echo "commit;"
     echo "CREATE TABLE new_directorys_of_move_to AS
               SELECT file FROM all_directory_above_move_to
-               WHERE file NOT IN (SELECT file FROM updat_dir);"
+               WHERE file NOT IN (
+                  SELECT file FROM updat_dir
+                   WHERE type = 'd'
+               );"
     echo "CREATE TABLE terminal_directorys_of_move_to AS
               SELECT file FROM all_directory_above_move_to
                WHERE file NOT IN (
