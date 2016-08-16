@@ -289,14 +289,10 @@ function create_hierarchy_tables_of_moved_files() {
                    USING (file)
                 );"
     echo "CREATE TABLE directorys_made_for_moving_files AS
-              SELECT file FROM terminal_directorys_of_move_to
-               WHERE file NOT IN (
-                  SELECT filepath
-                    FROM terminal_directorys_of_move_to JOIN tmplt_dir
-                   USING (file)
-                UNION
-                  SELECT filepath FROM updat_dir
-                );"
+            SELECT file FROM new_directorys_of_move_to
+                        JOIN terminal_directorys_of_move_to
+                        USING (file);"
+
   ) | sqlite3 $SQLFile
 }
 
