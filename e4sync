@@ -287,7 +287,7 @@ function create_hierarchy_tables_of_moved_files() {
                   SELECT tmplt_dir.filepath
                     FROM all_directory_above_move_to JOIN tmplt_dir
                    USING (file)
-                );"
+               );"
     echo "CREATE TABLE directorys_made_for_moving_files AS
             SELECT file FROM new_directorys_of_move_to
                         JOIN terminal_directorys_of_move_to
