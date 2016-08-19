@@ -246,7 +246,7 @@ function create_the_move_files_table() {
 	      AND all_old.size = all_new.size
 	      AND all_old.type = all_new.type
 	      AND all_old.subsecond != '0000000000'
-	      AND all_old.type = "f";
+	      AND all_old.type = 'f';
 	EOF
   fi
 }
