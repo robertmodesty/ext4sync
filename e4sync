@@ -176,7 +176,7 @@ function get_both_directory_names() {
 ########################################################################
 
 
-function create_the_difference_tables() {
+function create_the_operation_tables() {
 
   sqlite3 $SQLFile <<- EOF
 
@@ -680,7 +680,7 @@ function scan_directory() {
 
 function compare_directorys() {
 
-  create_the_difference_tables
+  create_the_operation_tables
 
   There_Are_Files_To_Move="false"
   create_the_move_files_table
