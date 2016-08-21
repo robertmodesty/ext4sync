@@ -229,6 +229,15 @@ function create_the_operation_tables() {
 	INSERT INTO all_new SELECT * FROM chg;
 	INSERT INTO all_new SELECT * FROM typechg;
 
+	CREATE TABLE set_directorys_time AS
+	    SELECT * FROM tmplt_dir
+	      WHERE type = 'd'
+	        AND file IN (
+	            SELECT file
+	              FROM tmplt_dir JOIN updat_dir USING (file)
+	             WHERE NOT tmplt_dir.time = updat_dir.time
+	        );
+
 	EOF
 }
 
