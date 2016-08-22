@@ -233,6 +233,9 @@ function create_the_operation_tables() {
 	    SELECT * FROM tmplt_dir
 	      WHERE type = 'd'
 	        AND file IN (
+	            SELECT file FROM all_new
+	             WHERE type = 'd'
+	          UNION
 	            SELECT file
 	              FROM tmplt_dir JOIN updat_dir USING (file)
 	             WHERE NOT tmplt_dir.time = updat_dir.time
