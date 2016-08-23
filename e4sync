@@ -233,6 +233,10 @@ function create_the_operation_tables() {
 	    SELECT * FROM tmplt_dir
 	      WHERE type = 'd'
 	        AND file IN (
+	            SELECT filepath FROM all_old
+	          UNION
+	            SELECT filepath FROM all_new
+	          UNION
 	            SELECT file FROM all_new
 	             WHERE type = 'd'
 	          UNION
