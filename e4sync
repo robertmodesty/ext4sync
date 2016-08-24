@@ -589,8 +589,7 @@ function setup_changed_permission() {
 
 function reset_directory_time() {
 
-  sqlite3 $SQLFile "SELECT time, file FROM tmplt_dir
-                      WHERE type = 'd'
+  sqlite3 $SQLFile "SELECT time, file FROM set_directorys_time
                       ORDER BY file
                       DESC;" \
    | sed "s/'/'\\\\''/g ;
