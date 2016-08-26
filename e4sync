@@ -490,14 +490,21 @@ function set_attr_of_dirs_above_moved_files() {
 
 function restore_moved_files_to_new_location() {
   local moveProtctDir="$1"
+  local dirMadeForMovingFiles
 
-  eval mkdir -p $VerbsOptn $(
-   sqlite3 $SQLFile "SELECT file FROM directorys_made_for_moving_files;" \
-    | sed "s/'/'\\\\''/g ;
-           s/^/ '/ ; s/$/'/ ;
-           s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
-           s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
-  ) || exit $?
+  dirMadeForMovingFiles="$(
+   sqlite3 $SQLFile "SELECT file FROM directorys_made_for_moving_files;"
+  )"
+
+  if [ "$dirMadeForMovingFiles" != "" ] ; then
+    eval mkdir -p $VerbsOptn $(
+     echo "$dirMadeForMovingFiles" \
+      | sed "s/'/'\\\\''/g ;
+             s/^/ '/ ; s/$/'/ ;
+             s/--BackslashProtect-96H=UOW8WBQ--/\\\\/g ;
+             s/--NewLineProtect-96H=UOW8WBQ--/\n/g" \
+    ) || exit $?
+  fi
 
   sqlite3 $SQLFile "SELECT to_loc FROM move_files;" \
    | sed "s/'/'\\\\''/g ;
