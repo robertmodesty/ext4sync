@@ -205,17 +205,16 @@ function create_the_operation_tables() {
               ON tmplt_dir.file = updat_dir.file
 	    WHERE NOT (    tmplt_dir.uID = updat_dir.uID
                        AND tmplt_dir.gID = updat_dir.gID)
-	          AND NOT
-	              (    tmplt_dir.time = updat_dir.time
-                       AND tmplt_dir.size = updat_dir.size)
+	          AND tmplt_dir.time = updat_dir.time
+	          AND tmplt_dir.size = updat_dir.size
 	          AND tmplt_dir.type = updat_dir.type;
 
 	CREATE TABLE set_permission AS SELECT tmplt_dir.*
 	    FROM tmplt_dir INNER JOIN updat_dir
               ON tmplt_dir.file = updat_dir.file
 	    WHERE NOT tmplt_dir.permission = updat_dir.permission
-	          AND NOT (    tmplt_dir.time = updat_dir.time
-                           AND tmplt_dir.size = updat_dir.size)
+	          AND tmplt_dir.time = updat_dir.time
+	          AND tmplt_dir.size = updat_dir.size
 	          AND tmplt_dir.type = updat_dir.type;
 
 	CREATE TABLE all_old AS
