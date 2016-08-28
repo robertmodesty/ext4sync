@@ -12,6 +12,7 @@
 ###### Settings ######
 
 readonly UserID=$( id -u )
+readonly GroupID=$( id -g )
 test "$UserID" == "0" \
   && readonly is_Root=true \
   || readonly is_Root=false
@@ -177,6 +178,9 @@ function get_both_directory_names() {
 
 
 function create_the_operation_tables() {
+
+  sqlite3 $SQLFile "CREATE TABLE user(uID, gID);
+                    INSERT INTO user VALUES($UserID, $GroupID);"
 
   sqlite3 $SQLFile <<- EOF
 
@@ -351,7 +355,12 @@ function update_the_tables_with_moved_files() {
 	                           OR NOT NewgID = OldgID
 	                     UNION
 	                       SELECT file FROM new_directorys_of_move_to
-                           )
+	                        WHERE file IN (
+	                         SELECT file FROM tmplt_dir
+	                          WHERE uID != (SELECT uID FROM user)
+	                             OR gID != (SELECT gID FROM user)
+	                        )
+	                   )
 	          AND file NOT IN (SELECT file FROM set_ownership);
 
 	DELETE FROM set_permission
@@ -377,9 +386,6 @@ function update_the_tables_with_moved_files() {
 # Functions Checking Permissions
 ########################################################################
 function files_been_denied_when_sync() {
-
-  sqlite3 $SQLFile "CREATE TABLE user(uID);
-                    INSERT INTO user VALUES($UserID);"
 
   sqlite3 $SQLFile <<- EOF
 
@@ -415,8 +421,6 @@ function files_been_denied_when_sync() {
 	SELECT file FROM set_permission
 	    WHERE uID != (SELECT uID FROM user)
 	    LIMIT 1;
-
-	DROP TABLE user;
 
 	EOF
 }
