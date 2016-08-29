@@ -192,23 +192,23 @@ function create_the_operation_tables() {
 
 	CREATE TABLE chg AS SELECT tmplt_dir.*
 	    FROM tmplt_dir INNER JOIN updat_dir
-              ON tmplt_dir.file = updat_dir.file
+	      ON tmplt_dir.file = updat_dir.file
 	    WHERE NOT (    tmplt_dir.time = updat_dir.time
-                       AND tmplt_dir.size = updat_dir.size)
+	               AND tmplt_dir.size = updat_dir.size)
 	          AND tmplt_dir.type = updat_dir.type;
 
 	CREATE TABLE typechg AS SELECT tmplt_dir.*
 	    FROM tmplt_dir INNER JOIN updat_dir
-              ON tmplt_dir.file = updat_dir.file
+	      ON tmplt_dir.file = updat_dir.file
 	    WHERE NOT (    tmplt_dir.time = updat_dir.time
-                       AND tmplt_dir.size = updat_dir.size)
+	               AND tmplt_dir.size = updat_dir.size)
 	          AND NOT tmplt_dir.type = updat_dir.type;
 
 	CREATE TABLE set_ownership AS SELECT tmplt_dir.*
 	    FROM tmplt_dir INNER JOIN updat_dir
-              ON tmplt_dir.file = updat_dir.file
+	      ON tmplt_dir.file = updat_dir.file
 	    WHERE NOT (    tmplt_dir.uID = updat_dir.uID
-                       AND tmplt_dir.gID = updat_dir.gID)
+	               AND tmplt_dir.gID = updat_dir.gID)
 	          AND tmplt_dir.time = updat_dir.time
 	          AND tmplt_dir.size = updat_dir.size
 	          AND tmplt_dir.type = updat_dir.type;
@@ -335,13 +335,13 @@ function update_the_tables_with_moved_files() {
 	            updat_dir.uID AS OlduID, updat_dir.gID AS OldgID,
 	            updat_dir.permission AS oldPermission,
 	            move_files.to_loc
-               FROM move_files INNER JOIN updat_dir
+	       FROM move_files INNER JOIN updat_dir
 	         ON move_files.from_loc = updat_dir.file;
 	CREATE TEMP TABLE mov_owner_permission_tmp
 	  AS SELECT mov_files_oldID_tmp.*,
 	            tmplt_dir.uID AS NewuID, tmplt_dir.gID AS NewgID,
 	            tmplt_dir.permission AS newPermission
-               FROM mov_files_oldID_tmp INNER JOIN tmplt_dir
+	       FROM mov_files_oldID_tmp INNER JOIN tmplt_dir
 	         ON mov_files_oldID_tmp.to_loc = tmplt_dir.file;
 
 	DELETE FROM set_ownership
@@ -372,7 +372,7 @@ function update_the_tables_with_moved_files() {
 	                        WHERE NOT newPermission = oldPermission
 	                     UNION
 	                       SELECT file FROM new_directorys_of_move_to
-                           )
+	                   )
 	          AND file NOT IN (SELECT file FROM set_permission);
 
 	EOF
